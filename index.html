@@ -1,0 +1,532 @@
+<!doctype html><html lang="fr" data-vue="bi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>lejournal</title>
+<style>
+:root{
+  --fond:#fbfaf7; --encre:#16161a; --gris:#5c5c66; --trait:#d9d5cc;
+  --accent:#0a5ad4; --zh-fond:#f2f0ea; --zh-encre:#22222a; --cit:#0a5ad4;
+  /* 注释层单独一套暖色，照 LeFigaro/chou 那几份长文（--bg-annot / --orange）。
+     和正文的蓝色 accent 分开，注释卡才跳得出来 —— 用户 2026-08-26 要求「更显眼」。 */
+  --annot-fond:#fff8e1; --annot-bord:#c7842f; --annot-encre:#3a2f18;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --fond:#14141a; --encre:#e9e7e2; --gris:#a09eaa; --trait:#33323c;
+    --accent:#7fb0ff; --zh-fond:#1e1e26; --zh-encre:#e4e2dc; --cit:#7fb0ff;
+    --annot-fond:#2a2318; --annot-bord:#e0a94f; --annot-encre:#f0e6d2;
+  }
+}
+:root[data-theme="dark"]{
+  --fond:#14141a; --encre:#e9e7e2; --gris:#a09eaa; --trait:#33323c;
+  --accent:#7fb0ff; --zh-fond:#1e1e26; --zh-encre:#e4e2dc; --cit:#7fb0ff;
+  --annot-fond:#2a2318; --annot-bord:#e0a94f; --annot-encre:#f0e6d2;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--encre);
+  font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+  line-height:1.6;-webkit-text-size-adjust:100%}
+.page{max-width:52rem;margin:0 auto;padding:1.4rem 1.15rem 4rem}
+.masthead{display:flex;flex-wrap:wrap;gap:.5rem .9rem;align-items:baseline;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:.78rem;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--gris);
+  padding-bottom:.4rem}
+.masthead b{background:var(--accent);color:#fff;padding:.12rem .5rem;
+  border-radius:2px;letter-spacing:.08em}
+.masthead .credit{margin-left:auto;font-style:italic;text-transform:none;
+  letter-spacing:.02em}
+.mentions{margin:1.6rem 0 0;padding-top:1rem;border-top:1px solid var(--trait);
+  font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+  font-size:.78rem;line-height:1.55;color:var(--gris)}
+.mentions p{margin:0 0 .35rem}
+.mentions .credit{font-style:italic;text-align:right;margin-top:.7rem;
+  font-family:system-ui,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif}
+.barre{position:sticky;top:0;z-index:5;background:var(--fond);
+  padding:.6rem 0;border-bottom:1px solid var(--trait);margin-bottom:1.4rem;
+  display:flex;gap:.7rem;flex-wrap:wrap;align-items:center;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.grp{display:flex;gap:.4rem;flex-wrap:wrap}
+.barre button{font:inherit;font-size:.82rem;padding:.32rem .8rem;cursor:pointer;
+  border:1px solid var(--trait);background:transparent;color:var(--gris);
+  border-radius:999px}
+/* 正在取那一期：只把按钮调暗，不加一个字 —— 元语言归元语言，状态归状态 */
+.barre button[aria-busy="true"]{opacity:.5}
+.barre button[aria-pressed="true"]{background:var(--encre);color:var(--fond);
+  border-color:var(--encre)}
+.sep{width:1px;height:1.4rem;background:var(--trait)}
+h2{font-size:clamp(1.6rem,4.6vw,2.4rem);line-height:1.1;margin:1.4rem 0 .2rem;
+  letter-spacing:-.012em}
+h2 .zh{display:block;font-size:.5em;line-height:1.35;margin-top:.45rem;
+  color:var(--gris);font-weight:600;background:none;padding:0}
+.chapo{font-size:1.05rem;color:var(--gris);margin:.8rem 0 0}
+.chapo .zh{display:block;margin-top:.35rem;background:none;padding:0}
+/* 署名条【只留下面一条线】。原来上下各一条，一旦紧跟在篇间分隔线或标题下面
+   就成了两条挨着的横线，看着像上一篇没删干净（2026-08-26 用户看出来的）。 */
+.byline{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:.82rem;color:var(--gris);
+  border-bottom:1px solid var(--trait);padding:0 0 .5rem;margin:.9rem 0 1.3rem;
+  display:flex;flex-wrap:wrap;gap:.3rem 1.1rem}
+/* 文末的署名缩写（« A.L. » « J.D. » « E. F. »）不是篇头署名：
+   纸上它印在正文最后一句之后，小号、贴右、没有任何横线。
+   套 .byline 的话它就成了「孤零零一行 + 多出来的一条线」（用户 2026-08-27） */
+.rubrique{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:.74rem;font-weight:700;letter-spacing:.09em;color:var(--gris);
+  margin:0 0 .25rem}
+.rubrique .zh{display:inline;font-size:1em;letter-spacing:0;color:var(--gris)}
+.rubrique .zh::before{content:"　"}
+.byline-fin{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:.8rem;color:var(--gris);text-align:right;
+  margin:-.2rem 0 1.4rem;letter-spacing:.04em}
+.fr{margin:0 0 .55rem}
+.zh{font-family:system-ui,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+  font-size:.94em;line-height:1.85;color:var(--zh-encre);margin:0}
+.zh p{margin:0 0 .5rem}
+.zh p:last-child{margin-bottom:0}
+.bloc{margin:0 0 1.5rem}
+.bloc .zh{background:var(--zh-fond);padding:.7rem .85rem;border-radius:4px}
+.q{margin:1.6rem 0 .9rem;padding-left:.9rem;border-left:3px solid var(--accent)}
+.q .fr{font-weight:700}
+.q .zh{color:var(--gris);font-weight:600}
+blockquote.pull{margin:2.2rem 0;padding:1.1rem 0 1.1rem 1.2rem;
+  border-left:4px solid var(--cit)}
+blockquote.pull .fr{font-size:1.22rem;line-height:1.3;font-weight:700;color:var(--cit)}
+blockquote.pull .zh{margin-top:.5rem;font-weight:600}
+.src{font-family:system-ui,sans-serif;font-size:.78rem;color:var(--gris);
+  margin:-1.6rem 0 2.2rem 1.2rem}
+figcaption{font-size:.86rem;color:var(--gris);border-top:1px solid var(--trait);
+  border-bottom:1px solid var(--trait);padding:.7rem 0;margin:1.8rem 0}
+figcaption .zh{margin-top:.35rem;font-size:.9em}
+figcaption .etiq{font-family:system-ui,sans-serif;font-size:.7rem;
+  letter-spacing:.09em;text-transform:uppercase;display:block;margin-bottom:.4rem}
+h3{font-size:1.05rem;margin:1.9rem 0 .5rem}
+h3 .zh{display:block;font-size:.85em;color:var(--gris);font-weight:600;
+  background:none;padding:0}
+article+article,section.annexe{margin-top:3rem;padding-top:1.4rem;
+  border-top:3px double var(--trait)}
+/* 本期目录：一行一篇，右边一枚小牌写它在纸上的版号 —— 不然读者点着点着
+   就到了第四版，不知道自己在哪儿（2026-08-27）。头版的导读框不进目录：
+   它是指向别版的指针，不是落点。 */
+.toc{border:1px solid var(--trait);border-radius:6px;padding:.9rem 1.1rem;
+  margin:1.3rem 0 2.4rem}
+.toc-tete{display:block;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--gris);margin-bottom:.5rem}
+.toc-tete .zh{display:inline;font-size:1em;letter-spacing:.04em;color:var(--gris)}
+.toc-tete .zh::before{content:"　·　"}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;display:flex;gap:.6rem;align-items:baseline;
+  padding:.42rem 0;border-top:1px dotted var(--trait)}
+.toc li:first-child{border-top:0}
+.toc li::before{content:counter(toc,decimal-leading-zero);flex:0 0 auto;
+  font-family:system-ui,sans-serif;font-size:.72rem;font-weight:700;
+  color:var(--accent)}
+.toc a{flex:1 1 auto;text-decoration:none;color:var(--encre);
+  font-size:.95rem;line-height:1.35}
+.toc a:hover{text-decoration:underline}
+.toc a .zh{display:block;font-size:.86em;color:var(--gris);margin-top:.12rem;
+  background:none;padding:0}
+.toc-p{flex:0 0 auto;font-family:system-ui,sans-serif;font-size:.72rem;
+  color:var(--gris);letter-spacing:.04em}
+article{scroll-margin-top:5rem}
+/* 头版的【导读框】：纸上它是一个方框，里头一条摘要，末行印着 « PAGE n »，
+   指向本期另一版。它和那一版的正文是分别写的两件东西（标题都不一样），
+   原来渲成一模一样的一篇 —— 同一条新闻两个大标题，读起来像被切成了两段
+   （2026-08-27）。这里只改版式，法语与中译一个字不动。 */
+article.renvoi,article+article.renvoi{border:1px solid var(--trait);
+  border-radius:6px;padding:1rem 1.1rem .35rem;margin-top:2.4rem}
+/* 方框自己的上下两条边已经把它和前后两篇分开了 —— 再画篇间的双线，
+   就成了两条挨着、中间不夹正文的横线（同上一族的「多出来的线条」）。 */
+article.renvoi+article{border-top:0;padding-top:0;margin-top:2.4rem}
+article.renvoi .fr{font-size:.95rem}
+.rtitre{font-size:1.12rem;line-height:1.25;font-weight:700;margin:0 0 .75rem}
+.rtitre .zh{display:block;font-size:.82em;line-height:1.4;margin-top:.3rem;
+  color:var(--gris);font-weight:600;background:none;padding:0}
+/* 一篇如果【以署名条开头】（社论就是：L'édito + 主笔名在标题之上），
+   它自己那条下边线会和篇间的双线夹出一条只装着一行小字的窄带 ——
+   看起来就是「多出来的线条」（用户 2026-08-27，同 §31.8 那一族）。
+   开头那一条不画线：上面的双线已经把两篇分开了，下面紧跟的就是篇名。 */
+article>.byline:first-child{border-bottom:0;padding-bottom:0;margin:.2rem 0 .45rem}
+table{border-collapse:collapse;width:100%;font-size:.92rem;margin:.9rem 0}
+th,td{border-bottom:1px solid var(--trait);padding:.42rem .5rem;text-align:right}
+th:first-child,td:first-child{text-align:left}
+thead th{font-family:system-ui,sans-serif;font-size:.78rem;color:var(--gris);
+  text-transform:uppercase;letter-spacing:.05em}
+.figure{margin:0}
+.figure img{display:block;width:100%;max-width:34rem;height:auto;border-radius:4px}
+/* 图表说明在 section.annexe 里，那一节自己已经有分隔线了 —— 再给
+   figcaption 加上下边框，图下面就变成一串横线（2026-08-26）。 */
+.figure figcaption{margin-top:.7rem;font-size:.9em;border:0;padding:0}
+.figure figcaption p{margin:.25rem 0}
+.figure figcaption p:first-child{font-weight:600;color:var(--encre)}
+/* 版面上的条形图。第一轮那张 1303 px 宽，缩到正文栏（约 795 px）小字仍读得清，
+   所以不做撑满视口那一套 —— 那会带来横向溢出。
+   只设上限不设宽度：第二轮那张只有 285 px，拉大只会糊。 */
+/* 版面上的两张民调图：数逐格读出来【重画】，不是贴位图。位图每 pt 只有
+   一个像素，放大只能插值。重画之后任意缩放都清楚，数字还能选中。 */
+.sondage{margin:1.3rem 0}
+.s-boite{border:1px solid var(--trait);border-radius:6px;padding:.8rem .7rem;
+  overflow-x:auto}
+.s-tete{font-family:system-ui,sans-serif;font-weight:800;letter-spacing:.06em;
+  text-align:center;font-size:.86rem;margin-bottom:.7rem}
+.s8{width:100%;min-width:40rem;border-collapse:collapse;font-size:.72rem}
+.s8 th,.s8 td{border:0;padding:.2rem .35rem;text-align:right;
+  border-bottom:1px solid var(--trait2)}
+.s8 thead th{font-size:.58rem;line-height:1.2;font-weight:600;
+  vertical-align:bottom;text-align:right;border-bottom:2px solid var(--trait)}
+.s8 thead th:first-child,.s8 tbody th{text-align:left}
+.s8 tbody th{font-weight:400}
+.s8 tr.s8-fin th{font-weight:700}
+.s8 tr.s8-annee th{font-weight:700;font-size:.82rem;padding-top:.7rem;
+  border-bottom:0}
+.s8 tr.s8-annee td{border-bottom:0}
+.s8 .s8-src{font-size:.6rem;color:var(--gris);text-align:left;font-style:italic}
+.s8 .s8-ok{font-size:.9rem;text-align:center;width:5rem}
+.s8 .s8-note{font-size:.6rem;color:var(--gris);text-align:left}
+.s8 .s8-vide{color:var(--gris)}
+.s8 tbody th i{font-style:italic;font-size:.6rem;color:var(--gris)}
+.s-t1{width:100%;min-width:34rem;border-collapse:collapse;
+  font-family:system-ui,sans-serif;table-layout:fixed}
+.s-t1 th,.s-t1 td{border:0;padding:.22rem .3rem;text-align:left;
+  vertical-align:bottom}
+.s-t1 thead th{font-size:.6rem;line-height:1.15;color:var(--encre);
+  font-weight:700;text-transform:uppercase;letter-spacing:.01em}
+.s-t1 thead th span{display:block}
+.s-t1 thead th i{display:block;font-style:normal;font-weight:400;
+  text-transform:none;letter-spacing:0;color:var(--gris);font-size:.92em;
+  margin-top:.15rem}
+.s-t1 th.s-cand{width:8.2rem;font-size:.72rem;font-weight:400;text-align:right;
+  white-space:nowrap;vertical-align:middle}
+.s-t1 tbody tr{background:var(--fond,transparent)}
+.s-t1 tbody td{font-size:.7rem;white-space:nowrap}
+.s-t1 tbody td b{font-weight:700}
+.s-barre{display:block;height:.42rem;border-radius:1px;margin-top:.12rem}
+.s-vide::after{content:"";display:block;height:.42rem;
+  border-left:1px solid var(--trait);margin-top:.12rem}
+/* 第二轮：一行两段，合计 100 */
+.s-t2b{max-width:26rem;margin:0 auto}
+.s-hyp{text-align:center;font-family:system-ui,sans-serif;font-size:.76rem;
+  line-height:1.35;margin-bottom:.6rem}
+.s-hyp span,.s-hyp b{display:block}
+.s-duel{margin:.5rem 0}
+.s-nom{font-family:system-ui,sans-serif;font-size:.74rem;letter-spacing:.02em;
+  margin-bottom:.15rem}
+.s-rangee{display:flex;height:1.35rem;border-radius:2px;overflow:hidden}
+.s-rangee span{display:flex;align-items:center;justify-content:center;
+  color:#fff;font-family:system-ui,sans-serif;font-size:.72rem;font-weight:700}
+.s-axe{text-align:center;font-family:system-ui,sans-serif;font-size:.66rem;
+  color:var(--gris);margin-top:.3rem}
+.s-credit{text-align:right;font-family:system-ui,sans-serif;font-size:.62rem;
+  color:var(--gris);margin-top:.5rem;letter-spacing:.04em}
+caption{caption-side:top;text-align:left;font-size:.84rem;color:var(--gris);
+  padding-bottom:.4rem}
+.note{font-size:.8rem;color:var(--gris)}
+.annot{border-bottom:1px dashed var(--annot-bord);cursor:pointer}
+.annot sup.apl{color:var(--annot-bord);font-weight:700;margin-left:1px}
+.annot-text{display:none;background:var(--annot-fond);color:var(--annot-encre);
+  border-left:4px solid var(--annot-bord);
+  padding:.8rem 1rem;margin:.7rem 0 1.1rem;border-radius:0 5px 5px 0;
+  box-shadow:0 1px 3px rgba(0,0,0,.07);
+  font-family:system-ui,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+  font-size:.88rem;line-height:1.75}
+.annot-text.open,.notes-ouvertes .annot-text{display:block}
+.annot-text b{color:var(--annot-bord)}
+.annot-text .annot-tier{float:right;color:var(--annot-bord);font-size:.74rem;
+  font-weight:600;margin-left:.6rem}
+.annot-text .src-note{display:block;margin-top:.45rem;font-size:.76rem;
+  color:var(--gris);font-style:italic}
+/* 双向滚动按钮 —— 照 LeFigaro/chou 那几份长文的做法（用户 2026-08-26 要求）。
+   两个都用 <button>，位置固定在右下；到顶 / 到底时各自隐藏。 */
+.totop,.tobottom{position:fixed;right:1.2rem;width:44px;height:44px;
+  background:var(--accent);color:#fff;border:none;border-radius:50%;
+  display:none;align-items:center;justify-content:center;cursor:pointer;
+  z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.totop{bottom:4.6rem} .tobottom{bottom:1.2rem}
+.totop.visible,.tobottom.visible{display:flex}
+.totop svg,.tobottom svg{width:20px;height:20px}
+/* 页脚与版权声明是两块，但紧挨着时只需要一条线，不是两条。 */
+.pied-page+.mentions{border-top:0;margin-top:.5rem;padding-top:0}
+.pied-page{margin-top:2.6rem;padding-top:1.1rem;border-top:1px solid var(--trait);
+  font-family:system-ui,sans-serif;font-size:.8rem;color:var(--gris)}
+.nav-bas{display:flex;justify-content:space-between;gap:1rem;margin-top:2.4rem;
+  font-family:system-ui,sans-serif}
+.nav-bas button{font:inherit;font-size:.85rem;padding:.55rem 1rem;cursor:pointer;
+  border:1px solid var(--trait);background:transparent;color:var(--encre);
+  border-radius:6px;max-width:47%}
+.nav-bas button[disabled]{opacity:.3;cursor:default}
+.feuille[hidden]{display:none}
+/* 报头开关：两家报纸各占一个圆章，点一下换一家。样式照 LeFigaro/chou 那两份长文
+   （.ig-ring / .ig-avatar-lp）：F 是渐变圈 + 白底深蓝字，P 是 conic 圈 + 蓝底白字。
+   品牌色不随深浅色主题变 —— 它们是报社的颜色，不是界面的颜色。 */
+.kiosque{display:flex;align-items:center;gap:.55rem;padding:.1rem 0 .9rem}
+.kq{width:46px;height:46px;flex-shrink:0;border:0;border-radius:50%;padding:2.5px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  opacity:.38;filter:grayscale(1);transition:opacity .15s,filter .15s}
+.kq:hover{opacity:.72;filter:grayscale(.35)}
+.kq[aria-pressed="true"]{opacity:1;filter:none}
+.kq-lf{background:linear-gradient(45deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)}
+.kq-lp{background:conic-gradient(from 45deg,#F58529 0deg,#DD2A7B 80deg,
+  #8134AF 160deg,#515BD4 220deg,#1AA8E5 290deg,#F58529 360deg)}
+.kq i{width:100%;height:100%;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-style:italic;font-weight:900;font-size:21px;
+  line-height:1;font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif}
+.kq-lf i{background:#fff;color:#122148}
+.kq-lp i{background:#1AA8E5;color:#fff;border:2px solid #fff}
+.kq-nom{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:.82rem;
+  letter-spacing:.05em;text-transform:uppercase;color:var(--gris)}
+.grp-feuille[hidden]{display:none}
+/* 日期条按月折叠（用户 2026-09-04：「一个月过去的话，手机往右边滑滑也要滑动蛮久的」）。
+   月份牌【单独一行、永不横滚】，日子另起一行、只显示展开的那个月。
+   往后再加多少期，第一行也只多一枚小牌 —— 长度随【月数】长，不随【期数】长。
+   2026-09-05 重排：第一版把日子嵌在月份牌里同一行，手机上两条都坏了 ——
+   月份牌被挤到展开那个月的长标签后面（要横滑很久才看得见），
+   而且 .mois 在横滚容器里被压扁、按钮溢出压到下一枚牌上（「两个日期名称交叉」）。*/
+/* 宽屏上这一层【不参与布局】：sticky 元素粘不出父盒子，
+   .barre 被 .tete 一包就只能粘 200 px，滚过去它就跟着走了（这一条见过红）。
+   手机上它才变回一个真的盒子，整块一起收起 / 露出。 */
+.tete{display:contents}
+.mois-barre{display:flex;gap:.4rem;flex:0 0 auto;flex-wrap:wrap}
+.mois-jours{display:flex;gap:.4rem;flex-wrap:wrap;flex:1 1 auto;min-width:0}
+.mois-jours[hidden]{display:none}
+.barre .mois-tete{font-weight:600;letter-spacing:.02em}
+.barre .mois-tete[aria-expanded="true"]{color:var(--encre);border-color:var(--encre)}
+.mois-tete .mois-n{font-size:.74em;opacity:.6;margin-left:.35rem}
+html[data-vue="fr"] .zh{display:none}
+html[data-vue="zh"] .fr{display:none}
+html[data-vue="zh"] h2 .zh,html[data-vue="zh"] h3 .zh{
+  display:block;font-size:1em;color:inherit}
+@media(max-width:34rem){.page{padding:1.1rem .9rem 3rem}}
+/* 手机上顶栏太占地方：期数越加越多，日期条要折成三四行，实测 360 宽的屏上
+   顶栏占掉 217px / 686px 视口（2026-08-26 用户提的）。两条一起解：
+   ① 日期条改单行横向滚动，不再折行 ② 下滚时把顶栏收起来，上滚再露出。 */
+@media(max-width:40rem){
+  /* 收起来的是【整个头】，圆章跟着一起回来 —— 2026-09-05 用户报「切不到 F 里」：
+     圆章原来在 .barre 外面，往下滑一点就永远滚走了，而日期条会跟着回来。 */
+  .barre{position:static;gap:.5rem}
+  .tete{display:block;position:sticky;top:0;z-index:5;background:var(--fond);
+    transition:transform .2s ease}
+  .tete.repliee{transform:translateY(-101%)}
+  .kiosque{padding:.45rem 0 .55rem}
+  /* 月份牌一行（不滚），日子一行（横滚）；语言与 Notes 在第三行 */
+  .grp-feuille{flex:1 0 100%;flex-direction:column;align-items:flex-start;
+    gap:.4rem;min-width:0}
+  .mois-barre{max-width:100%;overflow-x:auto;flex-wrap:nowrap;
+    scrollbar-width:none;-ms-overflow-style:none}
+  .mois-jours{max-width:100%;flex-wrap:nowrap;overflow-x:auto;min-width:0;
+    scrollbar-width:none;-ms-overflow-style:none}
+  .mois-barre::-webkit-scrollbar,.mois-jours::-webkit-scrollbar{display:none}
+  .grp-feuille button{flex:0 0 auto}
+  .barre .sep{display:none}
+}
+</style></head><body><div class="page">
+<div class="tete">
+<div class="kiosque"><button class="kq kq-lp" data-journal="Le Parisien" aria-pressed="true" title="Le Parisien"><i>P</i></button><button class="kq kq-lf" data-journal="Le Figaro" aria-pressed="false" title="Le Figaro"><i>F</i></button><span class="kq-nom" id="kq-nom">Le Parisien</span></div>
+<nav class="barre" aria-label="navigation"><div class="grp grp-feuille" data-journal="Le Parisien"><div class="mois-barre"><button class="mois-tete" data-mois="2026-09" aria-expanded="true">septembre<span class="mois-n">4</span></button><button class="mois-tete" data-mois="2026-08" aria-expanded="false">août<span class="mois-n">11</span></button></div><div class="mois-jours" data-mois="2026-09"><button data-feuille="0" data-jour="2026-09-04">4 sept. · Zemmour, Mélenchon et la politique familiale</button><button data-feuille="1" data-jour="2026-09-03">3 sept. · Larcher, Hollande et la primaire</button><button data-feuille="2" data-jour="2026-09-02">2 sept. · Attal, Philippe et le budget 2027</button><button data-feuille="3" data-jour="2026-09-01">1er sept. · L'école et le budget</button></div><div class="mois-jours" data-mois="2026-08" hidden><button data-feuille="4" data-jour="2026-08-28">28 août · Sept candidats au Medef</button><button data-feuille="5" data-jour="2026-08-27">27 août · Le Pen au Medef</button><button data-feuille="6" data-jour="2026-08-26">26 août · Medef</button><button data-feuille="7" data-jour="2026-08-25">25 août · Sondage</button><button data-feuille="8" data-jour="2026-08-24">24 août · Glucksmann</button><button data-feuille="9" data-jour="2026-08-23">23 août · Le Maire</button><button data-feuille="10" data-jour="2026-08-22">22 août · Droite &amp; gauche</button><button data-feuille="11" data-jour="2026-08-21">21 août · Gauche</button><button data-feuille="12" data-jour="2026-08-20">20 août · Attal-Philippe</button><button data-feuille="13" data-jour="2026-08-19">19 août · Politique</button><button data-feuille="14" data-jour="2026-08-18">18 août · Salamé</button></div></div><div class="grp grp-feuille" data-journal="Le Figaro" hidden><div class="mois-barre"><button class="mois-tete" data-mois="2026-09" aria-expanded="true">septembre<span class="mois-n">4</span></button><button class="mois-tete" data-mois="2026-08" aria-expanded="false">août<span class="mois-n">5</span></button></div><div class="mois-jours" data-mois="2026-09"><button data-feuille="15" data-jour="2026-09-04">4 sept. · Référendum, fiscalité et endurance</button><button data-feuille="16" data-jour="2026-09-03">3 sept. · Retailleau et la Constitution</button><button data-feuille="17" data-jour="2026-09-02">2 sept. · le voile et le référendum</button><button data-feuille="18" data-jour="2026-09-01">1er sept. · budget</button></div><div class="mois-jours" data-mois="2026-08" hidden><button data-feuille="19" data-jour="2026-08-31">31 août · rentrée politique</button><button data-feuille="20" data-jour="2026-08-27">27 août · primaires</button><button data-feuille="21" data-jour="2026-08-26">26 août · Medef</button><button data-feuille="22" data-jour="2026-08-25">25 août · Philippe</button><button data-feuille="23" data-jour="2026-08-24">24 août · deux gauches</button></div></div><div class="sep"></div><div class="grp grp-vue"><button data-vue="bi">双语 · Bilingue</button><button data-vue="fr">Français</button><button data-vue="zh">中文</button></div><div class="sep"></div><button id="notes-tout" aria-pressed="false"><span id="notes-label">Notes</span></button></nav>
+</div>
+<div class="feuille" data-journal="Le Parisien"><div class="masthead"><b>POLITIQUE</b><span>Le Parisien</span><span>Vendredi 4 septembre 2026 · N° 25515</span><span>p. 6-7</span><span class="credit">Claude [Anthropic] 译</span></div>
+<nav class="toc"><span class="toc-tete">Sommaire<span class="zh">本期目录</span></span><ol><li><a href="#20260904-zemmour">Zemmour lance sa précampagne au milieu des agriculteurs<span class="zh">Zemmour 在农民群体中启动了竞选预热活动</span></a><span class="toc-p">p.&nbsp;6</span></li><li><a href="#20260904-melenchon">Le revirement stratégique de Mélenchon sur le port du voile<span class="zh">Mélenchon 在头巾问题上的战略转向</span></a><span class="toc-p">p.&nbsp;6</span></li><li><a href="#20260904-famille">Le gouvernement veut revoir la politique familiale<span class="zh">政府要重新调整家庭政策</span></a><span class="toc-p">p.&nbsp;7</span></li></ol></nav>
+<article id="20260904-zemmour" data-page="6">
+<h2>Zemmour lance sa précampagne au milieu des agriculteurs<span class="zh">Zemmour 在农民群体中启动了竞选预热活动</span></h2>
+<p class="chapo">Discret jusqu’alors, le patron de Reconquête s’est rendu ce jeudi à la <span class="annot" data-pop="au-foiredechlonsencha-20260904">foire de Châlons-en-Champagne<sup class="apl">*</sup></span>. L’occasion de réaffirmer son ambition alors que sa compagne, <span class="annot" data-pop="knafo-0904">Sarah Knafo<sup class="apl">*</sup></span>, lui fait de l’ombre.<span class="zh">此前一直低调的 Reconquête 掌门人本周四去了 Châlons-en-Champagne 农业展。借这个场合重申自己的抱负 —— 而他的伴侣 Sarah Knafo 正盖过他的风头。</span></p>
+<div class="annot-text" id="knafo-0904"><b>Sarah Knafo</b>　2024 年当选的欧洲议会议员（Reconquête 名单），也是本篇主角的伴侣。她读过 Sciences Po 与 ENA，做过审计法院的司法官，现在是欧洲议会 ESN 党团的副主席。本篇写的正是她的声势盖过了 Zemmour —— 有一部分选民希望由她代替他参选。<span class="src-note">source：europarl.europa.eu 议员页与履历（Sarah Knafo，第十届）</span><span class="annot-tier">〔背景层 · 人物〕</span></div><div class="annot-text" id="au-foiredechlonsencha-20260904"><b>foire de Châlons-en-Champagne</b>　每年八月底至九月初在 Marne 省 Châlons-en-Champagne 举办的农业与综合博览会，是法国规模第二的农业展会。政治人物历来把它当作政治开学季的必到之处。<span class="src-note">source：foiredechalons.com 官方站</span><span class="annot-tier">〔背景层 · 场合〕</span></div>
+<div class="byline"><span>Victor Delair Envoyé spécial à Châlons-en-Champagne (Marne) et Alexandre Sulzer</span><span>Victor Delair（特派 Châlons-en-Champagne，Marne 省）与 Alexandre Sulzer</span></div>
+<div class="bloc"><p class="fr">IL A LE SOURIRE. Dans les allées de la <span class="annot" data-pop="au-foireagricoledechl-20260904">foire agricole de Châlons-en-Champagne<sup class="apl">*</sup></span> (Marne), ce jeudi, Éric Zemmour enchaîne volontiers les selfies, le teint hâlé après un été passé au calme. « Vous avez vu ? Je vous ai amené le soleil, vous pouvez me remercier », se marre le président de Reconquête. Dans son costume de presque candidat, il n’est pourtant pas en terrain conquis. « C’est pour ça que ça m’impressionne, j’y connais rien ! », lâche-t-il en riant au gérant d’un stand de perceuses.</p><p class="fr">À sept mois et demi de l’élection présidentielle, voilà donc l’essayiste tentant de (re)faire son trou. Lui qui laisse planer le suspense sur une deuxième candidature après celle de 2022 affiche une grande forme. « Arrêtez de la ramener et servez ! C’est comme Retailleau, je vais faire ci, je vais faire ça », blague-t-il avec un exposant tentant de lui présenter sa marque de bières. « Il faut prévoir des réserves d’eau, il faut arrêter les micmacs écolos », abonde-t-il, au sujet des fortes chaleurs. À peine dix minutes se sont écoulées et le voilà déjà contraint de clarifier son ambition. « Vous aurez ma déclaration en temps et en heure », assure-t-il, avant de lancer : « Ça y est, c’est parti. On y va là ! »</p><p class="fr">Discret médiatiquement et crédité de seulement 4 % d’intentions de vote dans le dernier sondage Elabe pour <span class="annot" data-pop="sg-bfmtv-20260904">BFMTV<sup class="apl">*</sup></span> (alors qu’il avait obtenu 7 % des voix au premier tour de la dernière présidentielle), Zemmour semble décidé à accélérer.</p><div class="zh"><p>他满面笑容。本周四，在 Châlons-en-Champagne（Marne 省）农业展的过道里，Éric Zemmour 来者不拒地一张张自拍，一个安静的夏天过后皮肤晒成了小麦色。「看见没有？我把太阳给你们带来了，你们该谢谢我」，这位 Reconquête 主席乐呵呵地说。他一身「准候选人」的行头，却并不是在自家地盘上。「所以这才让我佩服，我一窍不通！」，他冲一个卖电钻的摊主笑着说。</p><p>距总统选举还有七个半月，这位作家正试图（重新）挤出自己的位置。他让人猜了很久会不会在 2022 年之后再选一次，眼下状态很好。「别贫了，快倒酒！这就跟 Retailleau 一样，我要干这个，我要干那个」，他跟一位想向他推销自家啤酒的参展商开玩笑。「得预先建好蓄水池，得停掉那些环保的猫腻」，说到酷暑时他这样附和。才过了十分钟，他就又被迫澄清自己的打算。「我的声明该来的时候会来」，他保证说，随后又抛出一句：「好了，开始了。我们上！」</p><p>他在媒体上一向低调，在 Elabe 为 BFMTV 做的最新那份民调里只有 4% 的投票意向（而上一次总统选举首轮他拿到过 7%）—— Zemmour 看来已经决定加速。</p></div></div>
+<div class="annot-text" id="sg-bfmtv-20260904"><b>BFMTV</b>　法国收视率最高的滚动新闻频道。<span class="src-note">source：arcom.fr 频道名录</span><span class="annot-tier">〔背景层 · 机构〕</span></div><div class="annot-text" id="au-foireagricoledechl-20260904"><b>foire agricole de Châlons-en-Champagne</b>　仅次于巴黎农业展的法国第二大农业聚会，2026 年是第 80 届，8 月 28 日至 9 月 7 日举办。它同时是法国政治「开学季」的固定舞台：每年各党人物络绎不绝地来这里亮相，大选前一年尤其如此。<span class="src-note">source：franceinfo.fr 2026 年 8 月第 80 届现场报道；foiredechalons.com 官方会期页</span><span class="annot-tier">〔背景层 · 场合〕</span></div>
+<h3>À lui l’Élysée, à elle Matignon ?<span class="zh">他去 Élysée，她去 Matignon？</span></h3>
+<div class="bloc"><p class="fr">Éclipsé ces derniers temps par l’omniprésence de sa compagne, Sarah Knafo, que certains de ses électeurs aimeraient voir candidate à sa place, l’essayiste prévient sans détour : « Elle passe son temps à dire que je suis le candidat naturel de Reconquête… » Mais quand le sera-t-il vraiment ? « Avant décembre », élude-t-il. Deux jours plus tôt, dans une salle du Marais, à Paris, l’intéressé se montrait un peu plus précis, en livrant quelques confidences lors de la soirée de lancement du livre de Knafo, « le Casse du siècle » (Fayard). L’ex-journaliste laissait entendre qu’il n’attendra pas, cette fois, fin novembre pour se lancer, comme ce fut le cas il y a cinq ans. « J’ai trop tardé, il y a eu un mois de flottement », reconnaît-il a posteriori.</p><p class="fr">Devant la tonnelle du stand de la Fédération départementale des syndicats d’exploitants agricoles, Sandrine prévoit déjà de glisser un bulletin pour Zemmour. « Mais dans le milieu agricole, glisse-t-elle, personne n’ose le dire. » Alors que les derniers sondages donnent au Rassemblement national de Marine Le Pen une écrasante avance sur ses rivaux, cette agricultrice regrette que tous deux ne convergent pas : « On ne comprend pas qu’ils ne s’allient pas, le RN est trop en confiance. » À ses côtés, Louis, 17 ans, n’a pas encore le droit de vote. Mais pour lui, « Zemmour est le plus éloquent, comme… ah oui, Knafo. »</p><p class="fr">Avant de se lancer, le presque candidat promet, en privé, que cette dernière aura une « place éminente » dans la campagne. Lui qui récuse le terme de « ticket » (bien trop américanisant à son goût) évoque volontiers un « tandem ». De là à lui remettre les rênes de Matignon ? Zemmour dit ne pas aimer distribuer les rôles et met plutôt en avant un duo thématique : à lui <span class="annot" data-pop="regalien">le régalien<sup class="apl">*</sup></span> et l’identitaire, à elle l’économie. « Nous avons une vraie complémentarité, pas une opposition comme ailleurs… », grince le concerné, ciblant sans le dire le binôme Le Pen-Bardella.</p><div class="zh"><p>近来他被伴侣 Sarah Knafo 的无处不在盖住了风头 —— 他的一部分选民甚至希望由她代替他参选 —— 这位作家直截了当地提醒：「她成天在说我才是 Reconquête 天经地义的候选人……」可他到底什么时候才真的是？「十二月之前」，他避开了。两天前，在巴黎 Marais 区的一间厅里，当事人说得稍微具体了一点：那天是 Knafo 的新书《le Casse du siècle》（Fayard 出版）的发布晚会，他在会上透了几句底。这位前记者暗示，这一次他不会像五年前那样等到十一月底才动身。「我拖得太久了，白白飘了一个月」，他事后承认。</p><p>在省农业经营者工会联合会展位的凉棚前，Sandrine 已经打算把票投给 Zemmour。「可是在农业圈里」，她压低声音说，「没人敢说出口。」眼下的民调让 Marine Le Pen 的 Rassemblement national 对其余对手遥遥领先，这位女农场主为两人没有走到一起感到遗憾：「我们不明白他们为什么不结盟，RN 太有把握了。」她身边的 Louis 今年 17 岁，还没有投票权。但在他看来，「Zemmour 最能说，就像……啊对，Knafo。」</p><p>在正式参选之前，这位准候选人私下里许诺，她将在竞选中占据一个「显要的位置」。他拒绝用「ticket」这个说法（在他听来太美国化了），倒是很愿意说「tandem」（搭档）。那是不是要把 Matignon 的缰绳交给她？Zemmour 说他不喜欢分派角色，而更愿意强调一种按议题的分工：主权与认同归他，经济归她。「我们是真正的互补，不像别处那样是对立……」，当事人话里带刺，没有点名，指的却是 Le Pen–Bardella 那一对。</p></div></div>
+<div class="annot-text" id="regalien"><b>le régalien</b>　「王权的」—— 指国家不能让渡的那几项核心职能：司法、内部治安、对外防务、货币与公共财政。这个词的来历就是这些事从前是国王的专属权柄，后来转成了任何政治权力的专属。本篇里 Zemmour 说的分工是：régalien 与认同议题归他，经济归 Knafo。<span class="src-note">source：larousse.fr 法语词典「régalien」词条；vie-publique.fr《行政的各种职能》</span><span class="annot-tier">〔背景层 · 用词〕</span></div>
+<h3>« J’ai des promesses de dons »<span class="zh">「我手上有认捐的承诺」</span></h3>
+<div class="bloc"><p class="fr">La candidature de Le Pen, à la ligne sociale et populiste plus poussée — au détriment de Jordan Bardella, qui revendique une ligne plus libérale — lui donnerait, espère-t-il, de l’oxygène. « Si ce n’était pas elle la candidate, ça aurait été différent », reconnaît celui qui table également sur un renoncement du patron LR, Bruno Retailleau.</p><p class="fr">En attendant, Zemmour indique travailler depuis « un an » à récolter les 500 <span class="annot" data-pop="au-parrainages-20260904">parrainages<sup class="apl">*</sup></span> qu’il lui faudra pour se lancer. Financièrement, l’intéressé assure ne pas avoir besoin des banques : « Reconquête a de l’argent et j’ai des promesses de dons. » Et même s’il fait figure d’outsider face à Le Pen, il n’en démord pas : « Je pense que la situation est beaucoup plus mouvante qu’on ne le croit. C’est ma conviction. » Ou une <span class="annot" data-pop="methode-coue">méthode Coué<sup class="apl">*</sup></span> ?</p><div class="zh"><p>Le Pen 出选，走的是更靠社会议题、更民粹的路线 —— 这是以 Jordan Bardella 为代价的，后者主张一条更自由主义的路线 —— 他指望这能给自己一点氧气。「如果候选人不是她，情况会不一样」，他承认；同时他也押注 LR 掌门人 Bruno Retailleau 会放弃。</p><p>眼下，Zemmour 说他已经花了「一年」时间去凑参选所需的 500 个 parrainages（民选官员的联署推荐）。资金上，当事人保证不需要银行：「Reconquête 有钱，而且我手上有认捐的承诺。」即便面对 Le Pen 他看起来是个 outsider，他也不松口：「我认为局势比大家以为的要流动得多。这是我的信念。」还是一种自我打气？</p></div></div>
+<div class="annot-text" id="methode-coue"><b>méthode Coué</b>　指靠不断自我暗示来说服自己 —— 相当于中文的「自我打气」，带贬义。得名于药剂师 Émile Coué（1857–1926），他主张反复默念正面的句子来达到自我暗示的效果。记者用它收尾，是在反问 Zemmour 那句「局势比大家以为的要流动得多」到底是判断还是自我说服。<span class="src-note">source：larousse.fr 法语词典「méthode Coué」词条（它把 Coué 记作「Troyes 1857 – Nancy 1926」的药剂师）</span><span class="annot-tier">〔背景层 · 用词〕</span></div><div class="annot-text" id="au-parrainages-20260904"><b>parrainages</b>　推荐签名。法国总统选举里，任何人要正式参选，必须集齐至少 30 个省或海外集体、每个省不超过十分之一的 500 位民选官（市长、议员、大区与省议员等）的书面推荐，并由宪法委员会公布名单。<span class="src-note">source：conseil-constitutionnel.fr「Les parrainages」；vie-publique.fr 关于总统选举参选条件的说明</span><span class="annot-tier">〔背景层 · 制度〕</span></div>
+<blockquote class="pull"><p class="fr">« Si ce n’était pas Marine Le Pen la candidate RN, ça aurait été différent »</p><p class="zh">如果 RN 的候选人不是 Marine Le Pen，情况会不一样</p></blockquote>
+<p class="src">Éric Zemmour · Éric Zemmour</p>
+</article>
+<article id="20260904-melenchon" data-page="6">
+<h2>Le revirement stratégique de Mélenchon sur le port du voile<span class="zh">Mélenchon 在头巾问题上的战略转向</span></h2>
+<p class="chapo">Autrefois défenseur intransigeant de la <span class="annot" data-pop="au-lacit-20260904">laïcité<sup class="apl">*</sup></span>, l’Insoumis a assoupli a sa position.<span class="zh">这位从前寸步不让的 laïcité 捍卫者、如今的 Insoumis，把自己的立场放软了。</span></p>
+<div class="annot-text" id="au-lacit-20260904"><b>laïcité</b>　1905 年 12 月 9 日《政教分离法》确立的原则：国家不承认、不供养、不补贴任何宗教，同时保障信仰自由。它约束的是【国家及其工作人员】以及学校，而不是普通公民在街上的穿着 —— 本期 p3 那篇长文的整个论证就建立在这条区分上：正因为 laïcité 管不到公共空间里的个人，RN 才想把禁令改挂在「打击伊斯兰主义」名下。<span class="src-note">source：legifrance.gouv.fr 1905 年 12 月 9 日《关于教会与国家分离的法律》；conseil-etat.fr 关于 laïcité 的说明</span><span class="annot-tier">〔背景层 · 制度〕</span></div>
+<div class="byline"><span>Pierre Maurer et Julien Duffé</span><span>Pierre Maurer 与 Julien Duffé</span></div>
+<div class="bloc"><p class="fr">DE SES PROPRES MOTS, Jean-Luc Mélenchon fut pendant ses jeunes années un ardent « <span class="annot" data-pop="bouffeur-de-cures">bouffeur de curés<sup class="apl">*</sup></span> ». Franc-maçon et défenseur de la laïcité jusqu’au bout des ongles, l’ancien ministre socialiste a longtemps porté un regard critique sur le port du voile islamique, qu’il assimilait tantôt à un « signe de soumission patriarcale » (2010), tantôt à un « chiffon sur la tête » (2017).</p><div class="zh"><p>用他自己的话说，Jean-Luc Mélenchon 年轻时是个激烈的「bouffeur de curés」（啃神父的人，即激烈的反教权者）。他是共济会成员，把 laïcité 守到骨子里；这位前社会党部长长期以批判的眼光看待戴伊斯兰头巾这件事，一会儿说它是「父权服从的标志」（2010 年），一会儿说它是「头上的一块布」（2017 年）。</p></div></div>
+<div class="annot-text" id="bouffeur-de-cures"><b>bouffeur de curés</b>　字面是「啃神父的人」，法语里指激烈的反教权者 —— 动词短语« bouffer du curé »（大骂教士）的名词化。这个说法带调侃色彩，本篇用它来标出 Mélenchon 年轻时的位置，好和后面那个转向对照。<span class="src-note">source：larousse.fr 法英词典「bouffer」词条 —— 这条惯用语在那里（bouffer du curé = to be a priest-hater）</span><span class="annot-tier">〔背景层 · 用词〕</span></div>
+<div class="bloc"><p class="fr">Depuis plusieurs années, l’ancien enfant de chœur et premier communiant des clochers normands, né au Maroc, a fait évoluer son logiciel et n’hésite plus à défendre les croyants, chrétiens comme musulmans, contre les attaques qu’il juge stigmatisantes. Un assouplissement qui aurait commencé, selon son récit, au contact des populations sud-américaines, capables de mener des processus révolutionnaires anticapitalistes tout en remplissant le parvis des églises pour les messes dominicales.</p><div class="zh"><p>几年来，这位诺曼底钟楼下的前唱诗童子、初领圣体者 —— 他出生在摩洛哥 —— 换了一套思路，不再回避为信徒辩护，无论基督徒还是穆斯林，都要挡住他认为是污名化的攻击。按他自己的讲法，这种松动始于他接触南美的人群：那些人既能推进反资本主义的革命进程，又能在星期日弥撒时把教堂前的广场站满。</p></div></div>
+<div class="bloc"><p class="fr">Mercredi soir, lors d’une intervention devant ses soutiens au siège parisien du Parti ouvrier indépendant (Xe), le tribun s’en est expliqué une nouvelle fois dans une réponse à la volonté du RN de pénaliser le port du voile dans l’espace public. « Je sens que ça commence à soûler tout le monde… C’est recommencer à diviser les Français », a d’abord canardé le candidat de LFI à la présidentielle à l’adresse de Marine Le Pen. Avant de revenir sur ses positions révolues. « Je ne vais pas faire le malin, il y a vingt ans aussi, je n’étais pas d’accord avec cette histoire de voile. Je n’avais pas compris », a-t-il reconnu.</p><div class="zh"><p>本周三晚上，在独立工人党（Parti ouvrier indépendant）巴黎总部（十区）面对支持者的一次发言里，这位演说家又一次作了解释 —— 回应的是 RN 想把在公共空间戴头巾入罪的主张。「我感觉这事已经开始让所有人厌烦了……这是重新把法国人分裂开来」，这位 LFI 的总统候选人先是这样冲 Marine Le Pen 开火。随后他回过头来说自己那些已经作废的立场。「我不装能耐，二十年前我也一样，我不同意头巾这件事。我当时没弄明白」，他承认。</p></div></div>
+<h3>« Une erreur terrible »<span class="zh">「一个可怕的错误」</span></h3>
+<div class="bloc"><p class="fr">« Mais que fait une personne sensée au bout d’un moment ? Bah, vous parlez ! J’ai rencontré des femmes qui portaient le voile ou des femmes très croyantes qui ne le portaient pas […]. Et j’ai été convaincu. J’ai changé d’avis et je me suis dit : j’ai fait une erreur terrible », a souligné celui qui s’est placé depuis 2019 à la pointe de la lutte contre l’islamophobie.</p><div class="zh"><p>「可是一个明白人到了某个时候会怎么做？那就是，你去说话！我见过戴头巾的女性，也见过很虔诚却不戴的女性［……］。我被说服了。我改了主意，我对自己说：我犯了一个可怕的错误」，这位自 2019 年起站在反伊斯兰恐惧症最前线的人强调说。</p></div></div>
+<div class="bloc"><p class="fr">Un revirement pas totalement dénué d’arrière-pensées, selon ses pourfendeurs, qui y voient là une manière de séduire « l’électorat musulman ». « Pour des gens arabes, même de droite, même libéraux, il y a le sentiment, sur le port du voile, que trop c’est trop. La France a brûlé tout l’été, et le RN fait sa rentrée sur le voile ! Même dans l’électorat de Le Pen certains se disent : juste cibler une religion, c’est non », veut croire un député Insoumis.</p><p class="fr">Mercredi, Mélenchon a ainsi cherché une position de surplomb en appelant ses militants à ne pas verser dans l’injure. Une manière de se présidentialiser et de renverser les accusations de promoteur du « désordre » dont il fait l’objet. « Camarades, ne leur ressemblez pas. Pas d’injures, pas de sexisme, pas d’insultes », a-t-il lancé, après avoir dénoncé la tonalité des messages des sympathisants d’extrême droite sur X. « Donc madame Le Pen, du fait qu’elle est une femme, vous devez prendre des précautions supplémentaires », a-t-il intimé à son auditoire.</p><div class="zh"><p>在批他的人看来，这次转向并非全无算计 —— 他们从中看到的是讨好「穆斯林选民」的一种办法。「对阿拉伯裔的人来说，哪怕是右翼的、哪怕是自由派的，在头巾这件事上都有一种感觉：太过了。法国整个夏天都在烧，而 RN 的开学季是拿头巾开的场！就是在 Le Pen 的选民里也有人在想：只盯着一种宗教，这不行」，一位 Insoumis 议员愿意这样相信。</p><p>本周三，Mélenchon 于是选了一个超然的姿态，呼吁自己的支持者不要滑向辱骂。这既是让自己显得有总统相，也是把「制造失序」这顶扣在他头上的帽子反过来扔回去。「同志们，别学他们的样。不要辱骂，不要性别歧视，不要侮辱」，他这样喊话 —— 在此之前他刚谴责过极右翼同情者在 X 上那些消息的调门。「所以对 Le Pen 女士，正因为她是女性，你们必须格外注意分寸」，他这样叮嘱他的听众。</p></div></div>
+</article>
+<article id="20260904-famille" data-page="7">
+<p class="rubrique">BUDGET<span class="zh">预算</span></p>
+<h2>Le gouvernement veut revoir la politique familiale<span class="zh">政府要重新调整家庭政策</span></h2>
+<p class="chapo">L’exécutif cherche à réaliser des économies sur certaines mesures pour en financer d’autres.<span class="zh">政府想在其中一些项目上省下钱，用来给另一些项目筹钱。</span></p>
+<div class="byline"><span>Vincent Vérier</span></div>
+<div class="bloc"><p class="fr">« SUPPRESSION des <span class="annot" data-pop="sg-apl-20260904">APL<sup class="apl">*</sup></span> pour les étudiants, gel du <span class="annot" data-pop="sg-rsa-20260904">RSA<sup class="apl">*</sup></span> ou du <span class="annot" data-pop="minimum-vieillesse">minimum vieillesse<sup class="apl">*</sup></span>, remise en cause du crédit d’impôt pour les services à la personne… Tout cela est faux ! » Ce 20 août, quand Sébastien Lecornu tweete pour une nouvelle mise au point sur le budget 2027, les rumeurs de coups de rabot sur les aides sociales qui circulent sur les réseaux sociaux sont balayées d’un revers de main. Tous ? Pas vraiment. Ceux sur la politique familiale ne sont pas évoqués.</p><p class="fr">Il faut dire qu’un rapport conjoint de l’<span class="annot" data-pop="au-inspectiongnralede-20260904">Inspection générale des finances<sup class="apl">*</sup></span> (<span class="annot" data-pop="sg-igf-20260904">IGF<sup class="apl">*</sup></span>) et de l’Inspection générale des affaires sociales (<span class="annot" data-pop="igas">Igas<sup class="apl">*</sup></span>), commandé par le Premier ministre lui-même, a été publié fin juillet. Dans ses conclusions, les deux administrations proposent plusieurs mesures pour économiser 4,2 milliards d’euros par an à l’horizon de dix ans. Si Bercy répète que ce document ne présume pas de ce qui sera proposé dans le budget 2027, un poids lourd du gouvernement se veut plus direct : « Il y a des choses intéressantes. »</p><div class="zh"><p>「取消大学生的 APL（住房补助）、冻结 RSA（积极互助收入）或 minimum vieillesse（老年最低保障金）、动家政服务的税收抵免……这些统统是假的！」8 月 20 日，当 Sébastien Lecornu 发推为 2027 年预算再作一次澄清时，社交网络上流传的那些要削社会补助的传闻被他一挥手扫开。全部？倒也未必。关于家庭政策的那些，他没有提。</p><p>要知道，由总理本人下令、财政总督察署（IGF）与社会事务总督察署（Igas）联合完成的一份报告已在 7 月底公布。在结论里，这两个部门提出了若干措施，要在十年内做到每年省下 42 亿欧元。尽管 Bercy（财政部）反复说这份文件并不预设 2027 年预算里会提什么，政府的一位重量级人物却说得更直白：「里面有些东西挺有意思。」</p></div></div>
+<div class="annot-text" id="igas"><b>Igas</b>　Inspection générale des affaires sociales —— 社会事务总督察署，一个【跨部委】的监察机构，做稽查、审计、鉴定与评估，并为改革的设计与推行提供支持。它自己列的领域有六个：社会凝聚、社会保障、劳动与就业及职业培训、卫生、公共部门转型、公益募捐。本篇那份家庭政策报告由它与 IGF 联署，是总理亲自下令做的。<span class="src-note">source：igas.gouv.fr「Missions」</span><span class="annot-tier">〔背景层 · 机构〕</span></div><div class="annot-text" id="minimum-vieillesse"><b>minimum vieillesse</b>　给收入极低的老年人兜底的那笔钱，本身不是养老金 —— 它不看缴费年限，只看年龄和资源。2006 年的改革把原来分两层的旧制度并成一笔 Aspa（allocation de solidarité aux personnes âgées），自 2007 年起新申请者领的都是 Aspa；旧制度的受益人仍按旧规矩领，所以两套至今并存。「冻结」它就是不随物价上调。<span class="src-note">source：service-public.fr「Allocation de solidarité aux personnes âgées (Aspa)」；legifrance.gouv.fr 社会保障法典 L815-1 及以下；securite-sociale.fr 关于 Aspa 与 minimum vieillesse 的说明</span><span class="annot-tier">〔背景层 · 制度〕</span></div><div class="annot-text" id="sg-apl-20260904"><b>APL</b>　Aide personnalisée au logement，住房个人补助 —— 按收入、房租与家庭状况计算的租房补贴，由 CAF（家庭补助金库）发放，领取人里学生占很大一块。<span class="src-note">source：service-public.fr「Aide personnalisée au logement (APL)」</span><span class="annot-tier">〔背景层 · 制度〕</span></div><div class="annot-text" id="sg-rsa-20260904"><b>RSA</b>　Revenu de solidarité active，积极互助收入 —— 面向没有收入或收入极低者的最低生活保障，由省负责发放；2025 年起领取人需要与 France Travail 签订就业投入合同。<span class="src-note">source：service-public.fr「Revenu de solidarité active (RSA)」</span><span class="annot-tier">〔背景层 · 制度〕</span></div><div class="annot-text" id="sg-igf-20260904"><b>IGF</b>　Inspection générale des finances，财政总督察署 —— 隶属经济财政部的跨部门督察机构，受政府委托对公共政策与公共支出作审计和评估，其报告常常成为预算取舍的依据。本篇里它与 Igas 联署的那份家庭政策报告就是这样一份受托评估。<span class="src-note">source：igf.finances.gouv.fr 官方介绍页</span><span class="annot-tier">〔背景层 · 机构〕</span></div><div class="annot-text" id="au-inspectiongnralede-20260904"><b>Inspection générale des finances</b>　财政总监察局，隶属经济与财政部的跨部门监察机构，为政府做审计、评估与咨询，报告常常成为预算辩论的依据。<span class="src-note">source：igf.finances.gouv.fr（该局官网「Missions」）</span><span class="annot-tier">〔背景层 · 机构〕</span></div>
+<h3>Un coup de pouce pour les mères modestes<span class="zh">给收入较低的母亲一点甜头</span></h3>
+<div class="bloc"><p class="fr">D’ores et déjà, Jean-Pierre Farandou, le ministre du Travail, a annoncé cette semaine que lors du futur projet de loi de finance de la Sécurité sociale (<span class="annot" data-pop="sg-plfss-20260904">PLFSS<sup class="apl">*</sup></span>), la majoration de pension de retraite pour les parents de trois enfants et plus serait davantage orientée vers les mères, et moins vers les pères.</p><p class="fr">De quelle manière ? La mesure n’a pas été détaillée mais elle figurait en bonne place dans le fameux rapport. Ainsi, leurs auteurs proposaient de supprimer la majoration de 10 % dont bénéficient actuellement les parents ayant eu au moins trois enfants en le remplaçant par un forfait qui atteindrait 125 € par mois. Selon l’IGF et l’Igas, cela avantagerait les femmes qui ont des revenus plus modestes tout en économisant 1,1 milliard d’euros à terme.</p><p class="fr">Quant aux autres mesures ? « Il a y une bascule à opérer sur les aides à la natalité, poursuit le même ministre. On travaille sur débrancher certaines dépenses de la politique familiale pour en financer d’autres. Il ne s’agit pas de faire des économies mais de s’adapter. »</p><div class="zh"><p>劳动部长 Jean-Pierre Farandou 本周已经宣布，在下一部社会保障财政法案（PLFSS）里，育有三个及以上子女的父母那笔养老金加成将更多地向母亲倾斜，向父亲少给一些。</p><p>具体怎么做？措施没有细说，但它在那份著名的报告里位置显眼。报告作者提出，取消目前给至少育有三个子女的父母的那笔 10% 加成，换成一笔每月 125 欧元的定额。按 IGF 与 Igas 的说法，这会让收入较低的女性得利，同时长远看每年省下 11 亿欧元。</p><p>至于其余的措施呢？「生育相关福利需要做出调整」，同一位部长接着说，「我们在研究把家庭政策里的某些支出停掉，用来给另一些筹钱。这不是要省钱，而是要作调整。」</p></div></div>
+<div class="annot-text" id="sg-plfss-20260904"><b>PLFSS</b>　Projet de loi de financement de la sécurité sociale，社会保障筹资法案 —— 与财政法案分开的一部年度法案，管养老、医疗、家庭、工伤这几大社保分支的收支。<span class="src-note">source：vie-publique.fr「Loi de financement de la sécurité sociale」</span><span class="annot-tier">〔背景层 · 制度〕</span></div>
+<div class="bloc"><p class="fr">Chez les socialistes, on a quelques idées. « On a proposé que les allocations soient versées dès le premier enfant, plaide Sandrine Runel, députée du Rhône et membre de la commission des Affaires sociales de l’Assemblée nationale. En fonction des moyens du foyer. Cela permettrait de soutenir la natalité. » Une proposition qui n’a pas encore trouvé d’écho au sein de l’exécutif. Mais « l’idée est de mettre un peu de sucré dans ce budget, notamment sur la politique familiale, au-delà des ministères qui augmentent, poursuit la même source. Mais pour cela, il faut réaliser des économies ailleurs ».</p><p class="fr">Justement, le rapport en préconise plusieurs. Notamment de baisser de 20 % les seuils de passage à la deuxième et à la troisième tranche des allocations familiales. Selon le document, la mesure toucherait 591 000 ménages et permettrait d’économiser 530 millions d’euros. Une autre proposition suggère de supprimer la réduction d’impôt pour frais de scolarité — enseignement secondaire et enseignement supérieur. De quoi réduire la voilure de 450 millions supplémentaires.</p><p class="fr">Si le gouvernement promet, la main sur le cœur, qu’il ne s’agit pas de faire des économies avec la politique familiale, une donnée n’a pas échappé à ceux qui ont lu le document. On y apprend ainsi que, cumulés, les 36 dispositifs représentent 3,4 % de la richesse nationale produite chaque année. Soit 119,2 milliards d’euros en 2024, hors frais de gestion. En comparaison, les autres pays de l’Union européenne y consacrent en moyenne 2,7 %.</p><div class="zh"><p>社会党那边也有主意。「我们提议从第一个孩子起就发补助」，Rhône 省议员、国民议会社会事务委员会成员 Sandrine Runel 主张，「按家庭的收入来定。这样才能撑住生育率。」这个提议在政府内部还没有得到回应。不过「思路是给这份预算加一点甜的，尤其在家庭政策上，而不只是那些预算在涨的部门」，同一位消息人士接着说，「但要做到这一点，就得在别处省出来」。</p><p>而报告里恰恰提了好几条。特别是把家庭补助进入第二档和第三档的门槛下调 20%。按这份文件，这项措施会波及 59.1 万个家庭，可以省下 5.3 亿欧元。另一条建议是取消学费的税收减免 —— 中学与高等教育两段都算在内。这样又能再收缩 4.5 亿欧元。</p><p>尽管政府拍着胸脯保证，说这不是要拿家庭政策来省钱，读过这份文件的人还是注意到了一个数字：把 36 项措施加总，占到每年国民财富产出的 3,4% —— 也就是 2024 年的 1 192 亿欧元，还不含管理费用。相比之下，欧盟其他国家在这上面平均花 2,7%。</p></div></div>
+<blockquote class="pull"><p class="fr">« Il a y une bascule à opérer sur les aides à la natalité »</p><p class="zh">生育相关福利需要做出调整</p></blockquote>
+<p class="src">Jean-Pierre Farandou, ministre du Travail · Jean-Pierre Farandou，劳动部长</p>
+</article>
+<div class="pied-page">Le Parisien · Vendredi 4 septembre 2026 · N° 25515 · p. 6-7</div>
+<div class="mentions"><p>Traduction partielle du <em>Le Parisien</em> · Vendredi 4 septembre 2026 · N° 25515 · p. 6-7 (Victor Delair, Alexandre Sulzer, Pierre Maurer, Julien Duffé, Vincent Vérier).</p><p><em>Le Parisien</em> · article original : <em>kiosque.leparisien.fr</em> — se reporter au journal du jour.</p><p>Tous les droits d’auteur appartiennent à Le Parisien libéré SAS — <em>Tous droits réservés</em>.</p><p>Traduction abrégée à usage personnel pour l’apprentissage du français.</p><p>Toute reproduction commerciale, retransmission, adaptation, mise en ligne ou réédition du contenu de cette page est interdite.</p><p>Les propos rapportés n’engagent que leurs auteurs. Pour toute citation, se référer au reportage original et en indiquer la source.</p><p class="credit">Claude [Anthropic] 译</p></div></div><div class="feuille" data-journal="Le Parisien" data-src="20260903.html" hidden></div><div class="feuille" data-journal="Le Parisien" data-src="20260902.html" hidden></div><div class="feuille" data-journal="Le Parisien" data-src="20260901.html" hidden></div><div class="feuille" data-journal="Le Parisien" data-src="20260828.html" hidden></div><div class="feuille" data-journal="Le Parisien" data-src="20260827.html" hidden></div><div class="feuille" data-journal="Le Parisien" data-src="20260826.html" hidden></div><div class="feuille" data-journal="Le Parisien" data-src="20260825.html" hidden></div><div class="feuille" data-journal="Le Parisien" data-src="20260824.html" hidden></div><div class="feuille" data-journal="Le Parisien" data-src="20260823.html" hidden></div><div class="feuille" data-journal="Le Parisien" data-src="20260822.html" hidden></div><div class="feuille" data-journal="Le Parisien" data-src="20260821.html" hidden></div><div class="feuille" data-journal="Le Parisien" data-src="20260820.html" hidden></div><div class="feuille" data-journal="Le Parisien" data-src="20260819.html" hidden></div><div class="feuille" data-journal="Le Parisien" data-src="20260818.html" hidden></div><div class="feuille" data-journal="Le Figaro" data-src="LF20260904.html" hidden></div><div class="feuille" data-journal="Le Figaro" data-src="LF20260903.html" hidden></div><div class="feuille" data-journal="Le Figaro" data-src="LF20260902.html" hidden></div><div class="feuille" data-journal="Le Figaro" data-src="LF20260901.html" hidden></div><div class="feuille" data-journal="Le Figaro" data-src="LF20260831.html" hidden></div><div class="feuille" data-journal="Le Figaro" data-src="LF20260827.html" hidden></div><div class="feuille" data-journal="Le Figaro" data-src="LF20260826.html" hidden></div><div class="feuille" data-journal="Le Figaro" data-src="LF20260825.html" hidden></div><div class="feuille" data-journal="Le Figaro" data-src="LF20260824.html" hidden></div>
+<div class="nav-bas"><button id="prec"></button><button id="suiv"></button></div>
+</div>
+<button class="totop" id="vers-haut" aria-label="回到顶部"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg></button><button class="tobottom" id="vers-bas" aria-label="回到底部"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+<script>
+(function(){
+  var r=document.documentElement;
+  var vues=document.querySelectorAll('.grp-vue button');
+  var feuilles=document.querySelectorAll('.feuille');
+  var kq=document.querySelectorAll('.kq');
+  var bandes=document.querySelectorAll('.grp-feuille');
+  var nomJ=document.getElementById('kq-nom');
+  var prec=document.getElementById('prec'), suiv=document.getElementById('suiv');
+  var journal=null, onglets=[], lot=[], n=0, i=0;
+
+  function mettreVue(v){
+    r.setAttribute('data-vue',v);
+    vues.forEach(function(x){x.setAttribute('aria-pressed', x.dataset.vue===v);});
+  }
+  // 日期条按月折叠：一条带子里一次只展开一个月。
+  // 翻页翻过月界时要把目标那个月自己展开 —— 否则底部按钮和键盘能翻过去，
+  // 而日期条上高亮的那一枚是收着的、看不见（那就是「点得到但看不见」）。
+  function ouvrirMois(bande, cle){
+    if(!bande || !cle) return;
+    bande.querySelectorAll('.mois-tete').forEach(function(t){
+      t.setAttribute('aria-expanded', String(t.dataset.mois===cle)); });
+    bande.querySelectorAll('.mois-jours').forEach(function(g){
+      g.hidden = (g.dataset.mois!==cle); });
+  }
+  // Pages 版：版面按需取。单文件版没有 data-src，这一段直接落到 montrer()。
+  // 取不回来时【什么都不换】—— 停在当前这一张，比换到一张空版面好。
+  function mettreFeuille(k){
+    if(k<0||k>=n) return;
+    var f=lot[k];
+    if(f && f.dataset.src && !f.dataset.charge){
+      if(f.dataset.encours) return;
+      f.dataset.encours='1';
+      var b=onglets[k];
+      if(b) b.setAttribute('aria-busy','true');
+      fetch(f.dataset.src).then(function(r){
+        if(!r.ok) throw 0; return r.text(); }).then(function(t){
+        f.innerHTML=t; f.dataset.charge='1';
+        delete f.dataset.encours;
+        if(b) b.removeAttribute('aria-busy');
+        montrer(k);
+      })['catch'](function(){
+        delete f.dataset.encours;
+        if(b) b.removeAttribute('aria-busy');
+      });
+      return;
+    }
+    montrer(k);
+  }
+  function montrer(k){
+    if(k<0||k>=n) return;
+    i=k;
+    feuilles.forEach(function(f){ f.hidden = true; });
+    lot[i].hidden = false;
+    if(onglets[i]){
+      var g=onglets[i].parentNode;
+      ouvrirMois(g.parentNode, g.dataset.mois);
+    }
+    onglets.forEach(function(b,j){ b.setAttribute('aria-pressed', j===i); });
+    prec.disabled = (i===0); suiv.disabled = (i===n-1);
+    prec.textContent = i>0 ? '\u2190 '+onglets[i-1].textContent : '';
+    suiv.textContent = i<n-1 ? onglets[i+1].textContent+' \u2192' : '';
+    r.setAttribute('data-feuille', String(i));
+    window.scrollTo(0,0);
+    if(typeof majFleches==='function') majFleches();
+  }
+  // 换报纸：只换出这一家的日期条和这一家的版面，两家的日期永远不同框。
+  function mettreJournal(j){
+    journal=j;
+    r.setAttribute('data-journal', j);
+    kq.forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.journal===j)); });
+    bandes.forEach(function(b){ b.hidden = (b.dataset.journal!==j); });
+    if(nomJ) nomJ.textContent = j;
+    var bande=document.querySelector('.grp-feuille[data-journal="'+j+'"]');
+    onglets=[].slice.call(bande.querySelectorAll('.mois-jours button'));
+    lot=onglets.map(function(b){ return feuilles[Number(b.dataset.feuille)]; });
+    n=lot.length;
+    mettreFeuille(0);
+  }
+  vues.forEach(function(x){
+    x.addEventListener('click',function(){mettreVue(x.dataset.vue);});});
+  bandes.forEach(function(bande){
+    bande.querySelectorAll('.mois-jours button').forEach(function(b,j){
+      b.addEventListener('click',function(){mettreFeuille(j);});});
+    // 点月份牌只换【展开的是哪个月】，不换版面 —— 先翻月份再挑日子。
+    bande.querySelectorAll('.mois-tete').forEach(function(t){
+      t.addEventListener('click',function(){ ouvrirMois(bande, t.dataset.mois); });});});
+  kq.forEach(function(b){
+    b.addEventListener('click',function(){mettreJournal(b.dataset.journal);});});
+  prec.addEventListener('click',function(){mettreFeuille(i-1);});
+  suiv.addEventListener('click',function(){mettreFeuille(i+1);});
+
+  // keydown 挂 document 捕获阶段（CLAUDE.md §4）。只挂一次，不会累加。
+  document.addEventListener('keydown', function(ev){
+    var t=ev.target;
+    if(t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable)) return;
+    if(ev.key==='ArrowLeft'){ mettreFeuille(i-1); }
+    else if(ev.key==='ArrowRight'){ mettreFeuille(i+1); }
+  }, true);
+
+  // 注释：点带虚线的词开那一条；顶栏按钮一次开全部（章程 §5：事件走真人路径）
+  var toutes=document.getElementById('notes-tout');
+  var etiq=document.getElementById('notes-label');
+  toutes.addEventListener('click',function(){
+    var on=document.body.classList.toggle('notes-ouvertes');
+    toutes.setAttribute('aria-pressed', String(on));
+    etiq.textContent = on ? 'Hide notes' : 'Notes';
+    if(!on) document.querySelectorAll('.annot-text.open').forEach(
+      function(t){ t.classList.remove('open'); });
+  });
+  // 注释：一条委托，不是 532 条监听 —— 按需取回来的版面里的注释也直接就能点。
+  document.addEventListener('click',function(ev){
+    var el=ev.target.closest ? ev.target.closest('.annot') : null;
+    if(!el) return;
+    ev.stopPropagation();
+    var t=document.getElementById(el.dataset.pop);
+    if(t) t.classList.toggle('open');
+  });
+
+  // 双向滚动：到顶时上箭头收起，到底时下箭头收起（章程 §5：走真人路径，
+  // 事件挂在按钮上，翻页不重建它们 —— 它们在 .page 外面）
+  // 少一个小部件不该让整页瘫掉：下面全部走空值判断。
+  // 不这么写的话，箭头一旦不在，这段就抛异常，连翻页和圆章都跟着不响应 ——
+  // 而那正是「红的不是那一条」（章程 §7.2.2）。
+  var haut=document.getElementById('vers-haut');
+  var bas=document.getElementById('vers-bas');
+  function majFleches(){
+    if(!haut || !bas) return;
+    var y=window.scrollY||document.documentElement.scrollTop;
+    var reste=document.documentElement.scrollHeight-y-window.innerHeight;
+    haut.classList.toggle('visible', y>300);
+    bas.classList.toggle('visible', reste>300);
+  }
+  if(haut) haut.addEventListener('click',function(){
+    window.scrollTo({top:0,behavior:'smooth'});});
+  if(bas) bas.addEventListener('click',function(){
+    window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'});});
+  // 手机上顶栏跟着滚动方向收起 / 露出：往下读就把整块让出来，往上翻立刻回来。
+  // 宽屏不动（那里它不占地方）。判据用 innerWidth，和 CSS 的断点一致。
+  // 收起 / 露出的是【整个头】（圆章 + 顶栏），不是只有顶栏 ——
+  // 圆章留在外面的话，往下滑一点就再也回不来（用户 2026-09-05 报的「切不到 F 里」）。
+  var barre=document.querySelector('.tete') || document.querySelector('.barre');
+  var yPrec=0;
+  function majBarre(){
+    if(!barre) return;
+    var y=window.scrollY||document.documentElement.scrollTop;
+    if(window.innerWidth>640){ barre.classList.remove('repliee'); yPrec=y; return; }
+    if(y>220 && y>yPrec+6) barre.classList.add('repliee');
+    else if(y<yPrec-6 || y<=220) barre.classList.remove('repliee');
+    yPrec=y;
+  }
+  function auDefilement(){ majFleches(); majBarre(); }
+  window.addEventListener('scroll',auDefilement,{passive:true});
+  window.addEventListener('resize',auDefilement);
+
+  mettreVue('bi'); mettreJournal(kq[0].dataset.journal);
+  majFleches(); majBarre();
+})();
+</script></body></html>
