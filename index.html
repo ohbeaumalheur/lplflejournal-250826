@@ -5,8 +5,8 @@
 :root{
   --fond:#fbfaf7; --encre:#16161a; --gris:#5c5c66; --trait:#d9d5cc;
   --accent:#0a5ad4; --zh-fond:#f2f0ea; --zh-encre:#22222a; --cit:#0a5ad4;
-  /* 注释层单独一套暖色，照 LeFigaro/chou 那几份长文（--bg-annot / --orange）。
-     和正文的蓝色 accent 分开，注释卡才跳得出来 —— 用户 2026-08-26 要求「更显眼」。 */
+  /* Annotation layer keeps its own warm palette (--bg-annot / --orange), held
+     apart from the body accent so a card stands out from the text around it. */
   --annot-fond:#fff8e1; --annot-bord:#c7842f; --annot-encre:#3a2f18;
 }
 @media (prefers-color-scheme: dark){
@@ -48,7 +48,7 @@ body{margin:0;background:var(--fond);color:var(--encre);
 .barre button{font:inherit;font-size:.82rem;padding:.32rem .8rem;cursor:pointer;
   border:1px solid var(--trait);background:transparent;color:var(--gris);
   border-radius:999px}
-/* 正在取那一期：只把按钮调暗，不加一个字 —— 元语言归元语言，状态归状态 */
+/* Fetching that issue: dim the button, add no words. */
 .barre button[aria-busy="true"]{opacity:.5}
 .barre button[aria-pressed="true"]{background:var(--encre);color:var(--fond);
   border-color:var(--encre)}
@@ -59,15 +59,14 @@ h2 .zh{display:block;font-size:.5em;line-height:1.35;margin-top:.45rem;
   color:var(--gris);font-weight:600;background:none;padding:0}
 .chapo{font-size:1.05rem;color:var(--gris);margin:.8rem 0 0}
 .chapo .zh{display:block;margin-top:.35rem;background:none;padding:0}
-/* 署名条【只留下面一条线】。原来上下各一条，一旦紧跟在篇间分隔线或标题下面
-   就成了两条挨着的横线，看着像上一篇没删干净（2026-08-26 用户看出来的）。 */
+/* Byline: bottom rule only. A rule on each side doubles up against the
+     article separator and reads as a leftover line. */
 .byline{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
   font-size:.82rem;color:var(--gris);
   border-bottom:1px solid var(--trait);padding:0 0 .5rem;margin:.9rem 0 1.3rem;
   display:flex;flex-wrap:wrap;gap:.3rem 1.1rem}
-/* 文末的署名缩写（« A.L. » « J.D. » « E. F. »）不是篇头署名：
-   纸上它印在正文最后一句之后，小号、贴右、没有任何横线。
-   套 .byline 的话它就成了「孤零零一行 + 多出来的一条线」（用户 2026-08-27） */
+/* Trailing initials are not a byline: on paper they sit after the last
+     sentence, small, flush right, with no rule at all. */
 .rubrique{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
   font-size:.74rem;font-weight:700;letter-spacing:.09em;color:var(--gris);
   margin:0 0 .25rem}
@@ -102,9 +101,8 @@ h3 .zh{display:block;font-size:.85em;color:var(--gris);font-weight:600;
   background:none;padding:0}
 article+article,section.annexe{margin-top:3rem;padding-top:1.4rem;
   border-top:3px double var(--trait)}
-/* 本期目录：一行一篇，右边一枚小牌写它在纸上的版号 —— 不然读者点着点着
-   就到了第四版，不知道自己在哪儿（2026-08-27）。头版的导读框不进目录：
-   它是指向别版的指针，不是落点。 */
+/* Sheet contents: one line per article, with the printed page number on a
+     badge. Front-page teasers stay out — they point elsewhere. */
 .toc{border:1px solid var(--trait);border-radius:6px;padding:.9rem 1.1rem;
   margin:1.3rem 0 2.4rem}
 .toc-tete{display:block;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -127,23 +125,19 @@ article+article,section.annexe{margin-top:3rem;padding-top:1.4rem;
 .toc-p{flex:0 0 auto;font-family:system-ui,sans-serif;font-size:.72rem;
   color:var(--gris);letter-spacing:.04em}
 article{scroll-margin-top:5rem}
-/* 头版的【导读框】：纸上它是一个方框，里头一条摘要，末行印着 « PAGE n »，
-   指向本期另一版。它和那一版的正文是分别写的两件东西（标题都不一样），
-   原来渲成一模一样的一篇 —— 同一条新闻两个大标题，读起来像被切成了两段
-   （2026-08-27）。这里只改版式，法语与中译一个字不动。 */
+/* Front-page teaser: a framed box ending in « PAGE n », pointing at another
+     sheet. Styling only — the French and the Chinese are untouched. */
 article.renvoi,article+article.renvoi{border:1px solid var(--trait);
   border-radius:6px;padding:1rem 1.1rem .35rem;margin-top:2.4rem}
-/* 方框自己的上下两条边已经把它和前后两篇分开了 —— 再画篇间的双线，
-   就成了两条挨着、中间不夹正文的横线（同上一族的「多出来的线条」）。 */
+/* The box already has its own edges; the article separator would put two
+     rules side by side with no text between them. */
 article.renvoi+article{border-top:0;padding-top:0;margin-top:2.4rem}
 article.renvoi .fr{font-size:.95rem}
 .rtitre{font-size:1.12rem;line-height:1.25;font-weight:700;margin:0 0 .75rem}
 .rtitre .zh{display:block;font-size:.82em;line-height:1.4;margin-top:.3rem;
   color:var(--gris);font-weight:600;background:none;padding:0}
-/* 一篇如果【以署名条开头】（社论就是：L'édito + 主笔名在标题之上），
-   它自己那条下边线会和篇间的双线夹出一条只装着一行小字的窄带 ——
-   看起来就是「多出来的线条」（用户 2026-08-27，同 §31.8 那一族）。
-   开头那一条不画线：上面的双线已经把两篇分开了，下面紧跟的就是篇名。 */
+/* An article opening with a byline (the editorial does) gets no rule there:
+     the separator above already divides it, and the title follows directly. */
 article>.byline:first-child{border-bottom:0;padding-bottom:0;margin:.2rem 0 .45rem}
 table{border-collapse:collapse;width:100%;font-size:.92rem;margin:.9rem 0}
 th,td{border-bottom:1px solid var(--trait);padding:.42rem .5rem;text-align:right}
@@ -152,16 +146,14 @@ thead th{font-family:system-ui,sans-serif;font-size:.78rem;color:var(--gris);
   text-transform:uppercase;letter-spacing:.05em}
 .figure{margin:0}
 .figure img{display:block;width:100%;max-width:34rem;height:auto;border-radius:4px}
-/* 图表说明在 section.annexe 里，那一节自己已经有分隔线了 —— 再给
-   figcaption 加上下边框，图下面就变成一串横线（2026-08-26）。 */
+/* figcaption needs no borders: section.annexe already carries its own rule. */
 .figure figcaption{margin-top:.7rem;font-size:.9em;border:0;padding:0}
 .figure figcaption p{margin:.25rem 0}
 .figure figcaption p:first-child{font-weight:600;color:var(--encre)}
-/* 版面上的条形图。第一轮那张 1303 px 宽，缩到正文栏（约 795 px）小字仍读得清，
-   所以不做撑满视口那一套 —— 那会带来横向溢出。
-   只设上限不设宽度：第二轮那张只有 285 px，拉大只会糊。 */
-/* 版面上的两张民调图：数逐格读出来【重画】，不是贴位图。位图每 pt 只有
-   一个像素，放大只能插值。重画之后任意缩放都清楚，数字还能选中。 */
+/* Bar charts: cap the width, never stretch to the viewport. A max without a
+     width keeps the narrow one sharp instead of upscaling it. */
+/* Poll charts are redrawn from the figures rather than pasted as bitmaps, so
+     they stay sharp at any size and the numbers remain selectable. */
 .sondage{margin:1.3rem 0}
 .s-boite{border:1px solid var(--trait);border-radius:6px;padding:.8rem .7rem;
   overflow-x:auto}
@@ -201,7 +193,7 @@ thead th{font-family:system-ui,sans-serif;font-size:.78rem;color:var(--gris);
 .s-barre{display:block;height:.42rem;border-radius:1px;margin-top:.12rem}
 .s-vide::after{content:"";display:block;height:.42rem;
   border-left:1px solid var(--trait);margin-top:.12rem}
-/* 第二轮：一行两段，合计 100 */
+/* Runoff: two segments on one row, summing to 100. */
 .s-t2b{max-width:26rem;margin:0 auto}
 .s-hyp{text-align:center;font-family:system-ui,sans-serif;font-size:.76rem;
   line-height:1.35;margin-bottom:.6rem}
@@ -248,8 +240,8 @@ caption{caption-side:top;text-align:left;font-size:.84rem;color:var(--gris);
   font-weight:600;margin-left:.6rem}
 .annot-text .src-note{display:block;margin-top:.45rem;font-size:.76rem;
   color:var(--gris);font-style:italic}
-/* 双向滚动按钮 —— 照 LeFigaro/chou 那几份长文的做法（用户 2026-08-26 要求）。
-   两个都用 <button>，位置固定在右下；到顶 / 到底时各自隐藏。 */
+/* Scroll buttons both ways: real <button>s pinned bottom-right, each hidden
+     at the end it would take you to. */
 .totop,.tobottom{position:fixed;right:1.2rem;width:44px;height:44px;
   background:var(--accent);color:#fff;border:none;border-radius:50%;
   display:none;align-items:center;justify-content:center;cursor:pointer;
@@ -257,7 +249,7 @@ caption{caption-side:top;text-align:left;font-size:.84rem;color:var(--gris);
 .totop{bottom:4.6rem} .tobottom{bottom:1.2rem}
 .totop.visible,.tobottom.visible{display:flex}
 .totop svg,.tobottom svg{width:20px;height:20px}
-/* 页脚与版权声明是两块，但紧挨着时只需要一条线，不是两条。 */
+/* Footer and legal notice are two blocks but need one rule between them. */
 .pied-page+.mentions{border-top:0;margin-top:.5rem;padding-top:0}
 .pied-page{margin-top:2.6rem;padding-top:1.1rem;border-top:1px solid var(--trait);
   font-family:system-ui,sans-serif;font-size:.8rem;color:var(--gris)}
@@ -268,9 +260,8 @@ caption{caption-side:top;text-align:left;font-size:.84rem;color:var(--gris);
   border-radius:6px;max-width:47%}
 .nav-bas button[disabled]{opacity:.3;cursor:default}
 .feuille[hidden]{display:none}
-/* 报头开关：两家报纸各占一个圆章，点一下换一家。样式照 LeFigaro/chou 那两份长文
-   （.ig-ring / .ig-avatar-lp）：F 是渐变圈 + 白底深蓝字，P 是 conic 圈 + 蓝底白字。
-   品牌色不随深浅色主题变 —— 它们是报社的颜色，不是界面的颜色。 */
+/* Masthead toggle: one badge per paper. Brand colours are fixed and do not
+     follow the light/dark theme — they belong to the papers, not the UI. */
 .kiosque{display:flex;align-items:center;gap:.55rem;padding:.1rem 0 .9rem}
 .kq{width:46px;height:46px;flex-shrink:0;border:0;border-radius:50%;padding:2.5px;
   cursor:pointer;display:flex;align-items:center;justify-content:center;
@@ -288,15 +279,12 @@ caption{caption-side:top;text-align:left;font-size:.84rem;color:var(--gris);
 .kq-nom{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:.82rem;
   letter-spacing:.05em;text-transform:uppercase;color:var(--gris)}
 .grp-feuille[hidden]{display:none}
-/* 日期条按月折叠（用户 2026-09-04：「一个月过去的话，手机往右边滑滑也要滑动蛮久的」）。
-   月份牌【单独一行、永不横滚】，日子另起一行、只显示展开的那个月。
-   往后再加多少期，第一行也只多一枚小牌 —— 长度随【月数】长，不随【期数】长。
-   2026-09-05 重排：第一版把日子嵌在月份牌里同一行，手机上两条都坏了 ——
-   月份牌被挤到展开那个月的长标签后面（要横滑很久才看得见），
-   而且 .mois 在横滚容器里被压扁、按钮溢出压到下一枚牌上（「两个日期名称交叉」）。*/
-/* 宽屏上这一层【不参与布局】：sticky 元素粘不出父盒子，
-   .barre 被 .tete 一包就只能粘 200 px，滚过去它就跟着走了（这一条见过红）。
-   手机上它才变回一个真的盒子，整块一起收起 / 露出。 */
+/* Date strip folded by month. Month chips get a row of their own that never
+     scrolls; the days sit on a second row showing only the open month. The
+     strip therefore grows with the number of months, not of issues. */
+/* On wide screens this layer takes part in no layout: a sticky element cannot
+     stick beyond its parent box. On mobile it becomes a real box again and
+     retracts as one piece. */
 .tete{display:contents}
 .mois-barre{display:flex;gap:.4rem;flex:0 0 auto;flex-wrap:wrap}
 .mois-jours{display:flex;gap:.4rem;flex-wrap:wrap;flex:1 1 auto;min-width:0}
@@ -309,18 +297,19 @@ html[data-vue="zh"] .fr{display:none}
 html[data-vue="zh"] h2 .zh,html[data-vue="zh"] h3 .zh{
   display:block;font-size:1em;color:inherit}
 @media(max-width:34rem){.page{padding:1.1rem .9rem 3rem}}
-/* 手机上顶栏太占地方：期数越加越多，日期条要折成三四行，实测 360 宽的屏上
-   顶栏占掉 217px / 686px 视口（2026-08-26 用户提的）。两条一起解：
-   ① 日期条改单行横向滚动，不再折行 ② 下滚时把顶栏收起来，上滚再露出。 */
+/* The header costs too much room on a phone. Two fixes together: the date
+     strip scrolls on a single line instead of wrapping, and the header
+     retracts while reading down and returns on the way up. */
 @media(max-width:40rem){
-  /* 收起来的是【整个头】，圆章跟着一起回来 —— 2026-09-05 用户报「切不到 F 里」：
-     圆章原来在 .barre 外面，往下滑一点就永远滚走了，而日期条会跟着回来。 */
+  /* What retracts is the whole head, badges included — left outside, they would
+     scroll away for good while the strip came back. */
   .barre{position:static;gap:.5rem}
   .tete{display:block;position:sticky;top:0;z-index:5;background:var(--fond);
     transition:transform .2s ease}
   .tete.repliee{transform:translateY(-101%)}
   .kiosque{padding:.45rem 0 .55rem}
-  /* 月份牌一行（不滚），日子一行（横滚）；语言与 Notes 在第三行 */
+  /* Month chips on one row (no scroll), days on the next (scrolls), language
+     and Notes on a third. */
   .grp-feuille{flex:1 0 100%;flex-direction:column;align-items:flex-start;
     gap:.4rem;min-width:0}
   .mois-barre{max-width:100%;overflow-x:auto;flex-wrap:nowrap;
@@ -447,9 +436,9 @@ html[data-vue="zh"] h2 .zh,html[data-vue="zh"] h3 .zh{
     r.setAttribute('data-vue',v);
     vues.forEach(function(x){x.setAttribute('aria-pressed', x.dataset.vue===v);});
   }
-  // 日期条按月折叠：一条带子里一次只展开一个月。
-  // 翻页翻过月界时要把目标那个月自己展开 —— 否则底部按钮和键盘能翻过去，
-  // 而日期条上高亮的那一枚是收着的、看不见（那就是「点得到但看不见」）。
+  // Date strip folded by month: one month open at a time.
+  // Crossing a month boundary must open the target month, otherwise the
+  // highlighted chip stays folded: reachable, but not visible.
   function ouvrirMois(bande, cle){
     if(!bande || !cle) return;
     bande.querySelectorAll('.mois-tete').forEach(function(t){
@@ -457,8 +446,8 @@ html[data-vue="zh"] h2 .zh,html[data-vue="zh"] h3 .zh{
     bande.querySelectorAll('.mois-jours').forEach(function(g){
       g.hidden = (g.dataset.mois!==cle); });
   }
-  // Pages 版：版面按需取。单文件版没有 data-src，这一段直接落到 montrer()。
-  // 取不回来时【什么都不换】—— 停在当前这一张，比换到一张空版面好。
+  // Pages build: sheets are fetched on demand. The single-file build has no
+  // data-src and falls straight through. On failure change nothing: staying
   function mettreFeuille(k){
     if(k<0||k>=n) return;
     var f=lot[k];
@@ -498,7 +487,7 @@ html[data-vue="zh"] h2 .zh,html[data-vue="zh"] h3 .zh{
     window.scrollTo(0,0);
     if(typeof majFleches==='function') majFleches();
   }
-  // 换报纸：只换出这一家的日期条和这一家的版面，两家的日期永远不同框。
+  // Switching papers swaps strip and sheets together; the two never mix.
   function mettreJournal(j){
     journal=j;
     r.setAttribute('data-journal', j);
@@ -516,7 +505,7 @@ html[data-vue="zh"] h2 .zh,html[data-vue="zh"] h3 .zh{
   bandes.forEach(function(bande){
     bande.querySelectorAll('.mois-jours button').forEach(function(b,j){
       b.addEventListener('click',function(){mettreFeuille(j);});});
-    // 点月份牌只换【展开的是哪个月】，不换版面 —— 先翻月份再挑日子。
+    // A month chip changes only which month is open, not the sheet.
     bande.querySelectorAll('.mois-tete').forEach(function(t){
       t.addEventListener('click',function(){ ouvrirMois(bande, t.dataset.mois); });});});
   kq.forEach(function(b){
@@ -524,7 +513,7 @@ html[data-vue="zh"] h2 .zh,html[data-vue="zh"] h3 .zh{
   prec.addEventListener('click',function(){mettreFeuille(i-1);});
   suiv.addEventListener('click',function(){mettreFeuille(i+1);});
 
-  // keydown 挂 document 捕获阶段（CLAUDE.md §4）。只挂一次，不会累加。
+  // keydown on document, capture phase. Bound once, never accumulating.
   document.addEventListener('keydown', function(ev){
     var t=ev.target;
     if(t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable)) return;
@@ -532,7 +521,7 @@ html[data-vue="zh"] h2 .zh,html[data-vue="zh"] h3 .zh{
     else if(ev.key==='ArrowRight'){ mettreFeuille(i+1); }
   }, true);
 
-  // 注释：点带虚线的词开那一条；顶栏按钮一次开全部（章程 §5：事件走真人路径）
+  // Notes: a dotted word opens one, the header button opens all of them.
   var toutes=document.getElementById('notes-tout');
   var etiq=document.getElementById('notes-label');
   toutes.addEventListener('click',function(){
@@ -542,7 +531,7 @@ html[data-vue="zh"] h2 .zh,html[data-vue="zh"] h3 .zh{
     if(!on) document.querySelectorAll('.annot-text.open').forEach(
       function(t){ t.classList.remove('open'); });
   });
-  // 注释：一条委托，不是 532 条监听 —— 按需取回来的版面里的注释也直接就能点。
+  // Notes: one delegated listener, so fetched sheets work with no rebinding.
   document.addEventListener('click',function(ev){
     var el=ev.target.closest ? ev.target.closest('.annot') : null;
     if(!el) return;
@@ -551,11 +540,11 @@ html[data-vue="zh"] h2 .zh,html[data-vue="zh"] h3 .zh{
     if(t) t.classList.toggle('open');
   });
 
-  // 双向滚动：到顶时上箭头收起，到底时下箭头收起（章程 §5：走真人路径，
-  // 事件挂在按钮上，翻页不重建它们 —— 它们在 .page 外面）
-  // 少一个小部件不该让整页瘫掉：下面全部走空值判断。
-  // 不这么写的话，箭头一旦不在，这段就抛异常，连翻页和圆章都跟着不响应 ——
-  // 而那正是「红的不是那一条」（章程 §7.2.2）。
+  // Scroll buttons: the up arrow hides at the top, the down arrow at the
+  // bottom. Bound on the buttons, which live outside .page.
+  // A missing widget must not take the page down: everything below is
+  // null-guarded, so one absent arrow cannot stop paging or the badges
+  // from responding.
   var haut=document.getElementById('vers-haut');
   var bas=document.getElementById('vers-bas');
   function majFleches(){
@@ -569,10 +558,10 @@ html[data-vue="zh"] h2 .zh,html[data-vue="zh"] h3 .zh{
     window.scrollTo({top:0,behavior:'smooth'});});
   if(bas) bas.addEventListener('click',function(){
     window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'});});
-  // 手机上顶栏跟着滚动方向收起 / 露出：往下读就把整块让出来，往上翻立刻回来。
-  // 宽屏不动（那里它不占地方）。判据用 innerWidth，和 CSS 的断点一致。
-  // 收起 / 露出的是【整个头】（圆章 + 顶栏），不是只有顶栏 ——
-  // 圆章留在外面的话，往下滑一点就再也回不来（用户 2026-09-05 报的「切不到 F 里」）。
+  // Mobile: the header follows the scroll direction, giving the whole block
+  // back when reading down. Wide screens unchanged; the test uses innerWidth
+  // to match the CSS breakpoint. What moves is the whole head, badges
+  // included: left outside, they would never come back.
   var barre=document.querySelector('.tete') || document.querySelector('.barre');
   var yPrec=0;
   function majBarre(){
