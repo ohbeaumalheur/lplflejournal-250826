@@ -60,9 +60,11 @@ body{margin:0;background:var(--fond);color:var(--encre);
 .mentions p .fr+.zh{margin-top:.12rem}
 .mentions .credit{font-style:italic;text-align:right;margin-top:.7rem;
   font-family:system-ui,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif}
-.barre{position:sticky;top:0;z-index:5;background:var(--fond);
+/* Sticky lives on .tete now (the head retracts as one piece at every width),
+     so .barre is a plain box inside it. */
+.barre{background:var(--fond);
   padding:.6rem 0;border-bottom:1px solid var(--trait);margin-bottom:1.4rem;
-  display:flex;gap:.7rem;flex-wrap:wrap;align-items:center;
+  display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;
   font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 .grp{display:flex;gap:.4rem;flex-wrap:wrap}
 .barre button{font:inherit;font-size:.82rem;padding:.32rem .8rem;cursor:pointer;
@@ -469,10 +471,39 @@ caption{caption-side:top;text-align:left;font-size:.84rem;color:var(--gris);
 /* On wide screens this layer takes part in no layout: a sticky element cannot
      stick beyond its parent box. On mobile it becomes a real box again and
      retracts as one piece. */
-.tete{display:contents}
-.mois-barre{display:flex;gap:.4rem;flex:0 0 auto;flex-wrap:wrap}
-.mois-jours{display:flex;gap:.4rem;flex-wrap:wrap;flex:1 1 auto;min-width:0}
+/* The whole head is one sticky box that retracts while reading down, at every
+     width. A wrapping day strip grows with the number of issues and, being
+     sticky, keeps that height for good: the first article can end up below
+     the fold. A single scrolling row keeps the head at three rows. */
+.tete{display:block;position:sticky;top:0;z-index:5;background:var(--fond);
+  transition:transform .2s ease}
+.tete.repliee{transform:translateY(-101%)}
+.mois-barre{display:flex;gap:.4rem;flex:0 0 auto;flex-wrap:nowrap;
+  max-width:100%;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
+.mois-jours{display:flex;gap:.4rem;flex-wrap:nowrap;flex:1 1 auto;min-width:0;
+  max-width:100%;overflow-x:auto;scroll-behavior:smooth;
+  scrollbar-width:none;-ms-overflow-style:none}
+.mois-barre::-webkit-scrollbar,.mois-jours::-webkit-scrollbar{display:none}
 .mois-jours[hidden]{display:none}
+/* A finger can swipe; a mouse cannot, and the scrollbar is hidden — so the
+     pointer gets a visible handle: an arrow on each side plus a fade telling
+     that the row continues. The arrows sit outside .mois-jours so that every
+     count pinned on ".mois-jours button" stays what it was. */
+.jours-boite{position:relative;display:flex;align-items:center;gap:.25rem;
+  width:100%;min-width:0}
+.jours-piste{position:relative;flex:1 1 auto;min-width:0;display:flex}
+.jours-piste::before,.jours-piste::after{content:"";position:absolute;top:0;
+  bottom:0;width:1.6rem;pointer-events:none;opacity:0;transition:opacity .15s;
+  z-index:1}
+.jours-piste::before{left:0;
+  background:linear-gradient(90deg,var(--fond),transparent)}
+.jours-piste::after{right:0;
+  background:linear-gradient(270deg,var(--fond),transparent)}
+.jours-piste[data-gauche="1"]::before,
+.jours-piste[data-droite="1"]::after{opacity:1}
+.barre .jours-fleche{flex:0 0 auto;padding:.32rem .5rem;line-height:1;
+  border-radius:999px}
+.barre .jours-fleche[disabled]{opacity:.25;cursor:default}
 .barre .mois-tete{font-weight:600;letter-spacing:.02em}
 .barre .mois-tete[aria-expanded="true"]{color:var(--encre);border-color:var(--encre)}
 .mois-tete .mois-n{font-size:.74em;opacity:.6;margin-left:.35rem}
@@ -484,25 +515,16 @@ html[data-vue="zh"] h2 .zh,html[data-vue="zh"] h3 .zh{
 /* The header costs too much room on a phone. Two fixes together: the date
      strip scrolls on a single line instead of wrapping, and the header
      retracts while reading down and returns on the way up. */
+/* The band takes a row of its own at every width: sharing the row with the
+     badges left it 795px of a 1414px viewport, which is what pushed the strip
+     onto eleven rows. Month chips on one row, days on the next, language and
+     Notes on a third. */
+.grp-feuille{flex:1 0 100%;flex-direction:column;align-items:flex-start;
+  gap:.4rem;min-width:0}
+.grp-feuille button{flex:0 0 auto}
+.barre .sep{display:none}
 @media(max-width:40rem){
-  /* What retracts is the whole head, badges included — left outside, they would
-     scroll away for good while the strip came back. */
-  .barre{position:static;gap:.5rem}
-  .tete{display:block;position:sticky;top:0;z-index:5;background:var(--fond);
-    transition:transform .2s ease}
-  .tete.repliee{transform:translateY(-101%)}
   .kiosque{padding:.45rem 0 .55rem}
-  /* Month chips on one row (no scroll), days on the next (scrolls), language
-     and Notes on a third. */
-  .grp-feuille{flex:1 0 100%;flex-direction:column;align-items:flex-start;
-    gap:.4rem;min-width:0}
-  .mois-barre{max-width:100%;overflow-x:auto;flex-wrap:nowrap;
-    scrollbar-width:none;-ms-overflow-style:none}
-  .mois-jours{max-width:100%;flex-wrap:nowrap;overflow-x:auto;min-width:0;
-    scrollbar-width:none;-ms-overflow-style:none}
-  .mois-barre::-webkit-scrollbar,.mois-jours::-webkit-scrollbar{display:none}
-  .grp-feuille button{flex:0 0 auto}
-  .barre .sep{display:none}
 }
 
 /* ============================================================
@@ -642,7 +664,7 @@ html[data-vue="zh"] [data-typo="3"] h3 .zh{font-size:1em;color:inherit}
 </style></head><body><div class="page">
 <div class="tete">
 <div class="kiosque"><button class="kq kq-lp" data-journal="Le Parisien" aria-pressed="true" title="Le Parisien"><i>P</i></button><button class="kq kq-lf" data-journal="Le Figaro" aria-pressed="false" title="Le Figaro"><i>F</i></button><span class="kq-nom" id="kq-nom">Le Parisien</span></div>
-<nav class="barre" aria-label="navigation"><div class="grp grp-feuille" data-journal="Le Parisien"><div class="mois-barre"><button class="mois-tete" data-mois="2026-09" aria-expanded="true">septembre<span class="mois-n">21</span></button><button class="mois-tete" data-mois="2026-08" aria-expanded="false">août<span class="mois-n">14</span></button></div><div class="mois-jours" data-mois="2026-09"><button data-feuille="0" data-jour="2026-09-21">21 sept. · Le Pen tape sur Philippe</button><button data-feuille="1" data-jour="2026-09-20">20 sept. · « Nous sommes à l’heure du choix »</button><button data-feuille="2" data-jour="2026-09-19">19 sept. · L’exécutif redoute la fracture</button><button data-feuille="3" data-jour="2026-09-18">18 sept. · 54 milliards d’économies</button><button data-feuille="4" data-jour="2026-09-17">17 sept. · Exclu de la primaire</button><button data-feuille="5" data-jour="2026-09-16">16 sept. · À quoi ressemblera le budget 2027</button><button data-feuille="6" data-jour="2026-09-15">15 sept. · Quitte ou double à gauche</button><button data-feuille="7" data-jour="2026-09-14">14 sept. · Opération bistrot</button><button data-feuille="8" data-jour="2026-09-13">13 sept. · Semaine cruciale</button><button data-feuille="9" data-jour="2026-09-12">12 sept. · Le ticket froissé</button><button data-feuille="10" data-jour="2026-09-11">11 sept. · L’héritage entre en campagne</button><button data-feuille="11" data-jour="2026-09-10">10 sept. · Le train de vie de l’État, le clan Le Pen</button><button data-feuille="12" data-jour="2026-09-09">9 sept. · Pisa et le comité d’Édouard Philippe</button><button data-feuille="13" data-jour="2026-09-08">8 sept. · Ségolène Royal veut chambouler la primaire</button><button data-feuille="14" data-jour="2026-09-07">7 sept. · Les ministres bannis de LR et la règle d’or</button><button data-feuille="15" data-jour="2026-09-06">6 sept. · Le sondage Ipsos et le bloc central éparpillé</button><button data-feuille="16" data-jour="2026-09-05">5 sept. · Bardella, le plan sécheresse et Winock</button><button data-feuille="17" data-jour="2026-09-04">4 sept. · Zemmour, Mélenchon et la politique familiale</button><button data-feuille="18" data-jour="2026-09-03">3 sept. · Larcher, Hollande et la primaire</button><button data-feuille="19" data-jour="2026-09-02">2 sept. · Attal, Philippe et le budget 2027</button><button data-feuille="20" data-jour="2026-09-01">1er sept. · L'école et le budget</button></div><div class="mois-jours" data-mois="2026-08" hidden><button data-feuille="21" data-jour="2026-08-31">31 août · Faure, Darmanin-Philippe et Wauquiez</button><button data-feuille="22" data-jour="2026-08-30">30 août · Lecornu en exclusivité</button><button data-feuille="23" data-jour="2026-08-29">29 août · Polony, Hollande et Baroin</button><button data-feuille="24" data-jour="2026-08-28">28 août · Sept candidats au Medef</button><button data-feuille="25" data-jour="2026-08-27">27 août · Le Pen au Medef</button><button data-feuille="26" data-jour="2026-08-26">26 août · Medef</button><button data-feuille="27" data-jour="2026-08-25">25 août · Sondage</button><button data-feuille="28" data-jour="2026-08-24">24 août · Glucksmann</button><button data-feuille="29" data-jour="2026-08-23">23 août · Le Maire</button><button data-feuille="30" data-jour="2026-08-22">22 août · Droite &amp; gauche</button><button data-feuille="31" data-jour="2026-08-21">21 août · Gauche</button><button data-feuille="32" data-jour="2026-08-20">20 août · Attal-Philippe</button><button data-feuille="33" data-jour="2026-08-19">19 août · Politique</button><button data-feuille="34" data-jour="2026-08-18">18 août · Salamé</button></div></div><div class="grp grp-feuille" data-journal="Le Figaro" hidden><div class="mois-barre"><button class="mois-tete" data-mois="2026-09" aria-expanded="true">septembre<span class="mois-n">18</span></button><button class="mois-tete" data-mois="2026-08" aria-expanded="false">août<span class="mois-n">7</span></button></div><div class="mois-jours" data-mois="2026-09"><button data-feuille="35" data-jour="2026-09-21">21 sept. · La droite, les médias et la dette</button><button data-feuille="36" data-jour="2026-09-19">19 sept. · Budget sous la menace du RN</button><button data-feuille="37" data-jour="2026-09-18">18 sept. · Lecornu détaille sa copie</button><button data-feuille="38" data-jour="2026-09-17">17 sept. · Le spectre des « gilets jaunes »</button><button data-feuille="39" data-jour="2026-09-16">16 sept. · Glucksmann dans le piège</button><button data-feuille="40" data-jour="2026-09-15">15 sept. · Les retraités dans le viseur</button><button data-feuille="41" data-jour="2026-09-14">14 sept. · La bataille sociale</button><button data-feuille="42" data-jour="2026-09-12">12 sept. · L'État sous pression</button><button data-feuille="43" data-jour="2026-09-11">11 sept. · La France déglinguée</button><button data-feuille="44" data-jour="2026-09-10">10 sept. · La primaire ou la tambouille</button><button data-feuille="45" data-jour="2026-09-09">9 sept. · Pisa 2025 et l'an I de Lecornu</button><button data-feuille="46" data-jour="2026-09-08">8 sept. · Sénatoriales et désindexation des retraites</button><button data-feuille="47" data-jour="2026-09-07">7 sept. · Mélenchon fait main basse sur la gauche</button><button data-feuille="48" data-jour="2026-09-05">5 sept. · Le milliard agricole et le duel Attal-Mélenchon</button><button data-feuille="49" data-jour="2026-09-04">4 sept. · Référendum, fiscalité et endurance</button><button data-feuille="50" data-jour="2026-09-03">3 sept. · Retailleau et la Constitution</button><button data-feuille="51" data-jour="2026-09-02">2 sept. · le voile et le référendum</button><button data-feuille="52" data-jour="2026-09-01">1er sept. · budget</button></div><div class="mois-jours" data-mois="2026-08" hidden><button data-feuille="53" data-jour="2026-08-31">31 août · rentrée politique</button><button data-feuille="54" data-jour="2026-08-29">29 août · primaire à droite</button><button data-feuille="55" data-jour="2026-08-28">28 août · le grand oral du Medef</button><button data-feuille="56" data-jour="2026-08-27">27 août · primaires</button><button data-feuille="57" data-jour="2026-08-26">26 août · Medef</button><button data-feuille="58" data-jour="2026-08-25">25 août · Philippe</button><button data-feuille="59" data-jour="2026-08-24">24 août · deux gauches</button></div></div><div class="sep"></div><div class="grp grp-vue"><button data-vue="bi">双语 · Bilingue</button><button data-vue="fr">Français</button><button data-vue="zh">中文</button></div><div class="sep"></div><button id="notes-tout" aria-pressed="false"><span id="notes-label">Notes</span></button></nav>
+<nav class="barre" aria-label="navigation"><div class="grp grp-feuille" data-journal="Le Parisien"><div class="mois-barre"><button class="mois-tete" data-mois="2026-09" aria-expanded="true">septembre<span class="mois-n">21</span></button><button class="mois-tete" data-mois="2026-08" aria-expanded="false">août<span class="mois-n">14</span></button></div><div class="jours-boite"><button class="jours-fleche" data-sens="-1" aria-label="Avant">&#8249;</button><div class="jours-piste"><div class="mois-jours" data-mois="2026-09"><button data-feuille="0" data-jour="2026-09-21">21 sept. · Le Pen tape sur Philippe</button><button data-feuille="1" data-jour="2026-09-20">20 sept. · « Nous sommes à l’heure du choix »</button><button data-feuille="2" data-jour="2026-09-19">19 sept. · L’exécutif redoute la fracture</button><button data-feuille="3" data-jour="2026-09-18">18 sept. · 54 milliards d’économies</button><button data-feuille="4" data-jour="2026-09-17">17 sept. · Exclu de la primaire</button><button data-feuille="5" data-jour="2026-09-16">16 sept. · À quoi ressemblera le budget 2027</button><button data-feuille="6" data-jour="2026-09-15">15 sept. · Quitte ou double à gauche</button><button data-feuille="7" data-jour="2026-09-14">14 sept. · Opération bistrot</button><button data-feuille="8" data-jour="2026-09-13">13 sept. · Semaine cruciale</button><button data-feuille="9" data-jour="2026-09-12">12 sept. · Le ticket froissé</button><button data-feuille="10" data-jour="2026-09-11">11 sept. · L’héritage entre en campagne</button><button data-feuille="11" data-jour="2026-09-10">10 sept. · Le train de vie de l’État, le clan Le Pen</button><button data-feuille="12" data-jour="2026-09-09">9 sept. · Pisa et le comité d’Édouard Philippe</button><button data-feuille="13" data-jour="2026-09-08">8 sept. · Ségolène Royal veut chambouler la primaire</button><button data-feuille="14" data-jour="2026-09-07">7 sept. · Les ministres bannis de LR et la règle d’or</button><button data-feuille="15" data-jour="2026-09-06">6 sept. · Le sondage Ipsos et le bloc central éparpillé</button><button data-feuille="16" data-jour="2026-09-05">5 sept. · Bardella, le plan sécheresse et Winock</button><button data-feuille="17" data-jour="2026-09-04">4 sept. · Zemmour, Mélenchon et la politique familiale</button><button data-feuille="18" data-jour="2026-09-03">3 sept. · Larcher, Hollande et la primaire</button><button data-feuille="19" data-jour="2026-09-02">2 sept. · Attal, Philippe et le budget 2027</button><button data-feuille="20" data-jour="2026-09-01">1er sept. · L'école et le budget</button></div><div class="mois-jours" data-mois="2026-08" hidden><button data-feuille="21" data-jour="2026-08-31">31 août · Faure, Darmanin-Philippe et Wauquiez</button><button data-feuille="22" data-jour="2026-08-30">30 août · Lecornu en exclusivité</button><button data-feuille="23" data-jour="2026-08-29">29 août · Polony, Hollande et Baroin</button><button data-feuille="24" data-jour="2026-08-28">28 août · Sept candidats au Medef</button><button data-feuille="25" data-jour="2026-08-27">27 août · Le Pen au Medef</button><button data-feuille="26" data-jour="2026-08-26">26 août · Medef</button><button data-feuille="27" data-jour="2026-08-25">25 août · Sondage</button><button data-feuille="28" data-jour="2026-08-24">24 août · Glucksmann</button><button data-feuille="29" data-jour="2026-08-23">23 août · Le Maire</button><button data-feuille="30" data-jour="2026-08-22">22 août · Droite &amp; gauche</button><button data-feuille="31" data-jour="2026-08-21">21 août · Gauche</button><button data-feuille="32" data-jour="2026-08-20">20 août · Attal-Philippe</button><button data-feuille="33" data-jour="2026-08-19">19 août · Politique</button><button data-feuille="34" data-jour="2026-08-18">18 août · Salamé</button></div></div><button class="jours-fleche" data-sens="1" aria-label="Apres">&#8250;</button></div></div><div class="grp grp-feuille" data-journal="Le Figaro" hidden><div class="mois-barre"><button class="mois-tete" data-mois="2026-09" aria-expanded="true">septembre<span class="mois-n">18</span></button><button class="mois-tete" data-mois="2026-08" aria-expanded="false">août<span class="mois-n">7</span></button></div><div class="jours-boite"><button class="jours-fleche" data-sens="-1" aria-label="Avant">&#8249;</button><div class="jours-piste"><div class="mois-jours" data-mois="2026-09"><button data-feuille="35" data-jour="2026-09-21">21 sept. · La droite, les médias et la dette</button><button data-feuille="36" data-jour="2026-09-19">19 sept. · Budget sous la menace du RN</button><button data-feuille="37" data-jour="2026-09-18">18 sept. · Lecornu détaille sa copie</button><button data-feuille="38" data-jour="2026-09-17">17 sept. · Le spectre des « gilets jaunes »</button><button data-feuille="39" data-jour="2026-09-16">16 sept. · Glucksmann dans le piège</button><button data-feuille="40" data-jour="2026-09-15">15 sept. · Les retraités dans le viseur</button><button data-feuille="41" data-jour="2026-09-14">14 sept. · La bataille sociale</button><button data-feuille="42" data-jour="2026-09-12">12 sept. · L'État sous pression</button><button data-feuille="43" data-jour="2026-09-11">11 sept. · La France déglinguée</button><button data-feuille="44" data-jour="2026-09-10">10 sept. · La primaire ou la tambouille</button><button data-feuille="45" data-jour="2026-09-09">9 sept. · Pisa 2025 et l'an I de Lecornu</button><button data-feuille="46" data-jour="2026-09-08">8 sept. · Sénatoriales et désindexation des retraites</button><button data-feuille="47" data-jour="2026-09-07">7 sept. · Mélenchon fait main basse sur la gauche</button><button data-feuille="48" data-jour="2026-09-05">5 sept. · Le milliard agricole et le duel Attal-Mélenchon</button><button data-feuille="49" data-jour="2026-09-04">4 sept. · Référendum, fiscalité et endurance</button><button data-feuille="50" data-jour="2026-09-03">3 sept. · Retailleau et la Constitution</button><button data-feuille="51" data-jour="2026-09-02">2 sept. · le voile et le référendum</button><button data-feuille="52" data-jour="2026-09-01">1er sept. · budget</button></div><div class="mois-jours" data-mois="2026-08" hidden><button data-feuille="53" data-jour="2026-08-31">31 août · rentrée politique</button><button data-feuille="54" data-jour="2026-08-29">29 août · primaire à droite</button><button data-feuille="55" data-jour="2026-08-28">28 août · le grand oral du Medef</button><button data-feuille="56" data-jour="2026-08-27">27 août · primaires</button><button data-feuille="57" data-jour="2026-08-26">26 août · Medef</button><button data-feuille="58" data-jour="2026-08-25">25 août · Philippe</button><button data-feuille="59" data-jour="2026-08-24">24 août · deux gauches</button></div></div><button class="jours-fleche" data-sens="1" aria-label="Apres">&#8250;</button></div></div><div class="sep"></div><div class="grp grp-vue"><button data-vue="bi">双语 · Bilingue</button><button data-vue="fr">Français</button><button data-vue="zh">中文</button></div><div class="sep"></div><button id="notes-tout" aria-pressed="false"><span id="notes-label">Notes</span></button></nav>
 </div>
 <div class="feuille" data-journal="Le Parisien"><div class="masthead"><b>POLITIQUE</b><span>Le Parisien</span><span>Lundi 21 septembre 2026 · N° 25529</span><span>p. 8, 10</span><span class="credit">Claude [Anthropic] 译</span></div>
 <nav class="toc"><span class="toc-tete">Sommaire<span class="zh">本期目录</span></span><ol><li><a href="#20260921-lepen">Pourquoi Marine Le Pen tape dur sur Édouard Philippe<span class="zh">Marine Le Pen 为什么下狠手打 Édouard Philippe</span></a><span class="toc-p">p.&nbsp;8</span></li><li><a href="#20260921-police">À l’Assemblée, l’éternel report de la loi sur la police municipale exaspère<span class="zh">在国民议会，市镇警察法一拖再拖，把人惹毛了</span></a><span class="toc-p">p.&nbsp;10</span></li></ol></nav>
@@ -717,6 +739,8 @@ html[data-vue="zh"] [data-typo="3"] h3 .zh{font-size:1em;color:inherit}
       t.setAttribute('aria-expanded', String(t.dataset.mois===cle)); });
     bande.querySelectorAll('.mois-jours').forEach(function(g){
       g.hidden = (g.dataset.mois!==cle); });
+    // Another month means another scroller: arrows and fades recompute.
+    majJours();
   }
   // Pages build: sheets are fetched on demand. The single-file build has no
   // data-src and falls straight through. On failure change nothing: staying
@@ -839,16 +863,46 @@ html[data-vue="zh"] [data-typo="3"] h3 .zh{font-size:1em;color:inherit}
   function majBarre(){
     if(!barre) return;
     var y=window.scrollY||document.documentElement.scrollTop;
-    if(window.innerWidth>640){ barre.classList.remove('repliee'); yPrec=y; return; }
+    // Every width, not only narrow ones: a sticky head that never retracts
+    // keeps its whole height over the text for the entire read.
     if(y>220 && y>yPrec+6) barre.classList.add('repliee');
     else if(y<yPrec-6 || y<=220) barre.classList.remove('repliee');
     yPrec=y;
   }
+  // Arrows scroll the strip by eight tenths of its width and go disabled at
+  // each end; the fades on both sides follow data-gauche / data-droite. All
+  // three say the same thing: the row continues past the edge.
+  function pisteVisible(b){
+    return b.querySelector('.mois-jours:not([hidden])');
+  }
+  function majJours(){
+    document.querySelectorAll('.jours-boite').forEach(function(bo){
+      var j=pisteVisible(bo); if(!j) return;
+      var piste=bo.querySelector('.jours-piste');
+      var g=j.scrollLeft>2, d=j.scrollLeft+j.clientWidth<j.scrollWidth-2;
+      piste.dataset.gauche=g?'1':'0';
+      piste.dataset.droite=d?'1':'0';
+      bo.querySelectorAll('.jours-fleche').forEach(function(f){
+        f.disabled = (f.dataset.sens==='-1') ? !g : !d;
+      });
+    });
+  }
+  document.querySelectorAll('.jours-fleche').forEach(function(f){
+    f.addEventListener('click',function(){
+      var bo=f.closest('.jours-boite'), j=pisteVisible(bo); if(!j) return;
+      j.scrollLeft += Number(f.dataset.sens)*Math.round(j.clientWidth*0.8);
+      setTimeout(majJours,260);
+    });
+  });
+  document.querySelectorAll('.mois-jours').forEach(function(j){
+    j.addEventListener('scroll',majJours,{passive:true});
+  });
+  window.addEventListener('resize',majJours);
   function auDefilement(){ majFleches(); majBarre(); }
   window.addEventListener('scroll',auDefilement,{passive:true});
   window.addEventListener('resize',auDefilement);
 
-  mettreVue('bi'); mettreJournal(kq[0].dataset.journal);
+  mettreVue('bi'); mettreJournal(kq[0].dataset.journal); majJours();
   majFleches(); majBarre();
 })();
 </script></body></html>
